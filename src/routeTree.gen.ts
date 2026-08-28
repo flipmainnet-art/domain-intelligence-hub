@@ -10,7 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuctionsRouteImport } from './routes/auctions'
+import { Route as AutopilotRouteImport } from './routes/autopilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as InsightsRouteImport } from './routes/insights'
+import { Route as ListingsRouteImport } from './routes/listings'
+import { Route as MyDomainsRouteImport } from './routes/my-domains'
+import { Route as OffersRouteImport } from './routes/offers'
+import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as DomainDomainRouteImport } from './routes/domain.$domain'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +25,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuctionsRoute = AuctionsRouteImport.update({
+  id: '/auctions',
+  path: '/auctions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutopilotRoute = AutopilotRouteImport.update({
+  id: '/autopilot',
+  path: '/autopilot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiscoverRoute = DiscoverRouteImport.update({
   id: '/discover',
   path: '/discover',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingsRoute = ListingsRouteImport.update({
+  id: '/listings',
+  path: '/listings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyDomainsRoute = MyDomainsRouteImport.update({
+  id: '/my-domains',
+  path: '/my-domains',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WatchlistRoute = WatchlistRouteImport.update({
+  id: '/watchlist',
+  path: '/watchlist',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DomainDomainRoute = DomainDomainRouteImport.update({
@@ -31,31 +73,90 @@ const DomainDomainRoute = DomainDomainRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
+  '/insights': typeof InsightsRoute
+  '/listings': typeof ListingsRoute
+  '/my-domains': typeof MyDomainsRoute
+  '/offers': typeof OffersRoute
+  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
+  '/insights': typeof InsightsRoute
+  '/listings': typeof ListingsRoute
+  '/my-domains': typeof MyDomainsRoute
+  '/offers': typeof OffersRoute
+  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auctions': typeof AuctionsRoute
+  '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
+  '/insights': typeof InsightsRoute
+  '/listings': typeof ListingsRoute
+  '/my-domains': typeof MyDomainsRoute
+  '/offers': typeof OffersRoute
+  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discover' | '/domain/$domain'
+  fullPaths:
+    | '/'
+    | '/auctions'
+    | '/autopilot'
+    | '/discover'
+    | '/insights'
+    | '/listings'
+    | '/my-domains'
+    | '/offers'
+    | '/watchlist'
+    | '/domain/$domain'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discover' | '/domain/$domain'
-  id: '__root__' | '/' | '/discover' | '/domain/$domain'
+  to:
+    | '/'
+    | '/auctions'
+    | '/autopilot'
+    | '/discover'
+    | '/insights'
+    | '/listings'
+    | '/my-domains'
+    | '/offers'
+    | '/watchlist'
+    | '/domain/$domain'
+  id:
+    | '__root__'
+    | '/'
+    | '/auctions'
+    | '/autopilot'
+    | '/discover'
+    | '/insights'
+    | '/listings'
+    | '/my-domains'
+    | '/offers'
+    | '/watchlist'
+    | '/domain/$domain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuctionsRoute: typeof AuctionsRoute
+  AutopilotRoute: typeof AutopilotRoute
   DiscoverRoute: typeof DiscoverRoute
+  InsightsRoute: typeof InsightsRoute
+  ListingsRoute: typeof ListingsRoute
+  MyDomainsRoute: typeof MyDomainsRoute
+  OffersRoute: typeof OffersRoute
+  WatchlistRoute: typeof WatchlistRoute
   DomainDomainRoute: typeof DomainDomainRoute
 }
 
@@ -68,11 +169,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auctions': {
+      id: '/auctions'
+      path: '/auctions'
+      fullPath: '/auctions'
+      preLoaderRoute: typeof AuctionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/autopilot': {
+      id: '/autopilot'
+      path: '/autopilot'
+      fullPath: '/autopilot'
+      preLoaderRoute: typeof AutopilotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/discover': {
       id: '/discover'
       path: '/discover'
       fullPath: '/discover'
       preLoaderRoute: typeof DiscoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listings': {
+      id: '/listings'
+      path: '/listings'
+      fullPath: '/listings'
+      preLoaderRoute: typeof ListingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-domains': {
+      id: '/my-domains'
+      path: '/my-domains'
+      fullPath: '/my-domains'
+      preLoaderRoute: typeof MyDomainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/watchlist': {
+      id: '/watchlist'
+      path: '/watchlist'
+      fullPath: '/watchlist'
+      preLoaderRoute: typeof WatchlistRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/domain/$domain': {
@@ -87,7 +237,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuctionsRoute: AuctionsRoute,
+  AutopilotRoute: AutopilotRoute,
   DiscoverRoute: DiscoverRoute,
+  InsightsRoute: InsightsRoute,
+  ListingsRoute: ListingsRoute,
+  MyDomainsRoute: MyDomainsRoute,
+  OffersRoute: OffersRoute,
+  WatchlistRoute: WatchlistRoute,
   DomainDomainRoute: DomainDomainRoute,
 }
 export const routeTree = rootRouteImport
