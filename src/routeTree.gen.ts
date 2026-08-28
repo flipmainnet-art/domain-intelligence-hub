@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuctionsRouteImport } from './routes/auctions'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as MyDomainsRouteImport } from './routes/my-domains'
 import { Route as DomainDomainRouteImport } from './routes/domain.$domain'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const DiscoverRoute = DiscoverRouteImport.update({
   path: '/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyDomainsRoute = MyDomainsRouteImport.update({
+  id: '/my-domains',
+  path: '/my-domains',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DomainDomainRoute = DomainDomainRouteImport.update({
   id: '/domain/$domain',
   path: '/domain/$domain',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auctions': typeof AuctionsRoute
   '/discover': typeof DiscoverRoute
+  '/my-domains': typeof MyDomainsRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auctions': typeof AuctionsRoute
   '/discover': typeof DiscoverRoute
+  '/my-domains': typeof MyDomainsRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auctions': typeof AuctionsRoute
   '/discover': typeof DiscoverRoute
+  '/my-domains': typeof MyDomainsRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auctions' | '/discover' | '/domain/$domain'
+  fullPaths: '/' | '/auctions' | '/discover' | '/my-domains' | '/domain/$domain'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auctions' | '/discover' | '/domain/$domain'
-  id: '__root__' | '/' | '/auctions' | '/discover' | '/domain/$domain'
+  to: '/' | '/auctions' | '/discover' | '/my-domains' | '/domain/$domain'
+  id:
+    | '__root__'
+    | '/'
+    | '/auctions'
+    | '/discover'
+    | '/my-domains'
+    | '/domain/$domain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuctionsRoute: typeof AuctionsRoute
   DiscoverRoute: typeof DiscoverRoute
+  MyDomainsRoute: typeof MyDomainsRoute
   DomainDomainRoute: typeof DomainDomainRoute
 }
 
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-domains': {
+      id: '/my-domains'
+      path: '/my-domains'
+      fullPath: '/my-domains'
+      preLoaderRoute: typeof MyDomainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/domain/$domain': {
       id: '/domain/$domain'
       path: '/domain/$domain'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuctionsRoute: AuctionsRoute,
   DiscoverRoute: DiscoverRoute,
+  MyDomainsRoute: MyDomainsRoute,
   DomainDomainRoute: DomainDomainRoute,
 }
 export const routeTree = rootRouteImport
