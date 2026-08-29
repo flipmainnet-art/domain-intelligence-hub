@@ -56,7 +56,7 @@ const groups: { label: string; items: Item[] }[] = [
   },
 ];
 
-function NavLink({ item, onNavigate }: { item: Item; onNavigate?: () => void }) {
+function NavLink({ item, onNavigate }: { item: Item; onNavigate?: (() => void) | undefined }) {
   const Icon = item.icon;
   return (
     <Link
@@ -78,7 +78,7 @@ function NavLink({ item, onNavigate }: { item: Item; onNavigate?: () => void }) 
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-14 items-center border-b border-sidebar-border px-5">
