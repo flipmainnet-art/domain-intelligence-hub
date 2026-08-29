@@ -36,7 +36,7 @@ const tone = (s: Offer["status"]) =>
   s === "Accepted" ? "success" : s === "Countered" ? "primary" : s === "Declined" ? "danger" : "warning";
 
 function Offers() {
-  const [selected, setSelected] = useState(offers[0]);
+  const [selected, setSelected] = useState<Offer>(offers[0]!);
   const pending = offers.filter((o) => o.status === "Pending");
 
   return (

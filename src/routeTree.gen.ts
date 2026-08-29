@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AuctionsRouteImport } from './routes/auctions'
 import { Route as AutopilotRouteImport } from './routes/autopilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
@@ -17,12 +18,20 @@ import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as ListingsRouteImport } from './routes/listings'
 import { Route as MyDomainsRouteImport } from './routes/my-domains'
 import { Route as OffersRouteImport } from './routes/offers'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as DomainDomainRouteImport } from './routes/domain.$domain'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuctionsRoute = AuctionsRouteImport.update({
@@ -60,6 +69,21 @@ const OffersRoute = OffersRouteImport.update({
   path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransactionsRoute = TransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalletRoute = WalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WatchlistRoute = WatchlistRouteImport.update({
   id: '/watchlist',
   path: '/watchlist',
@@ -73,6 +97,7 @@ const DomainDomainRoute = DomainDomainRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
@@ -80,11 +105,15 @@ export interface FileRoutesByFullPath {
   '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
   '/offers': typeof OffersRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
   '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
@@ -92,12 +121,16 @@ export interface FileRoutesByTo {
   '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
   '/offers': typeof OffersRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
   '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analytics': typeof AnalyticsRoute
   '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
@@ -105,6 +138,9 @@ export interface FileRoutesById {
   '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
   '/offers': typeof OffersRoute
+  '/settings': typeof SettingsRoute
+  '/transactions': typeof TransactionsRoute
+  '/wallet': typeof WalletRoute
   '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
@@ -112,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analytics'
     | '/auctions'
     | '/autopilot'
     | '/discover'
@@ -119,11 +156,15 @@ export interface FileRouteTypes {
     | '/listings'
     | '/my-domains'
     | '/offers'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
     | '/watchlist'
     | '/domain/$domain'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analytics'
     | '/auctions'
     | '/autopilot'
     | '/discover'
@@ -131,11 +172,15 @@ export interface FileRouteTypes {
     | '/listings'
     | '/my-domains'
     | '/offers'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
     | '/watchlist'
     | '/domain/$domain'
   id:
     | '__root__'
     | '/'
+    | '/analytics'
     | '/auctions'
     | '/autopilot'
     | '/discover'
@@ -143,12 +188,16 @@ export interface FileRouteTypes {
     | '/listings'
     | '/my-domains'
     | '/offers'
+    | '/settings'
+    | '/transactions'
+    | '/wallet'
     | '/watchlist'
     | '/domain/$domain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalyticsRoute: typeof AnalyticsRoute
   AuctionsRoute: typeof AuctionsRoute
   AutopilotRoute: typeof AutopilotRoute
   DiscoverRoute: typeof DiscoverRoute
@@ -156,6 +205,9 @@ export interface RootRouteChildren {
   ListingsRoute: typeof ListingsRoute
   MyDomainsRoute: typeof MyDomainsRoute
   OffersRoute: typeof OffersRoute
+  SettingsRoute: typeof SettingsRoute
+  TransactionsRoute: typeof TransactionsRoute
+  WalletRoute: typeof WalletRoute
   WatchlistRoute: typeof WatchlistRoute
   DomainDomainRoute: typeof DomainDomainRoute
 }
@@ -167,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auctions': {
@@ -218,6 +277,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions': {
+      id: '/transactions'
+      path: '/transactions'
+      fullPath: '/transactions'
+      preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wallet': {
+      id: '/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/watchlist': {
       id: '/watchlist'
       path: '/watchlist'
@@ -237,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalyticsRoute: AnalyticsRoute,
   AuctionsRoute: AuctionsRoute,
   AutopilotRoute: AutopilotRoute,
   DiscoverRoute: DiscoverRoute,
@@ -244,6 +325,9 @@ const rootRouteChildren: RootRouteChildren = {
   ListingsRoute: ListingsRoute,
   MyDomainsRoute: MyDomainsRoute,
   OffersRoute: OffersRoute,
+  SettingsRoute: SettingsRoute,
+  TransactionsRoute: TransactionsRoute,
+  WalletRoute: WalletRoute,
   WatchlistRoute: WatchlistRoute,
   DomainDomainRoute: DomainDomainRoute,
 }
