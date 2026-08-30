@@ -102,58 +102,62 @@ function Dashboard() {
           </div>
         }
       >
-        <div className="h-[300px] px-2 py-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={perfSeries} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="t"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={56}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
-              />
-              <Tooltip
-                cursor={{ stroke: "var(--border-strong)" }}
-                contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: "var(--muted-foreground)" }}
-                formatter={(v: number, n) => [money(v), n === "value" ? "Est. value" : "Cost basis"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="var(--primary)"
-                strokeWidth={1.75}
-                fill="url(#pv)"
-              />
-              <Area
-                type="monotone"
-                dataKey="cost"
-                stroke="var(--muted-foreground)"
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                fill="none"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <EditableSeries id="dashboard.perf" initial={perfSeries}>
+          {(series) => (
+            <div className="h-[300px] px-2 py-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="t"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={56}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: "var(--border-strong)" }}
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "var(--muted-foreground)" }}
+                    formatter={(v: number, n) => [money(v), n === "value" ? "Est. value" : "Cost basis"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    strokeWidth={1.75}
+                    fill="url(#pv)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="cost"
+                    stroke="var(--muted-foreground)"
+                    strokeWidth={1}
+                    strokeDasharray="3 3"
+                    fill="none"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </EditableSeries>
       </Panel>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
