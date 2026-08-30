@@ -19,20 +19,10 @@ export const Route = createFileRoute("/wallet")({
 
 function WalletPage() {
   const [depositOpen, setDepositOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
   const inflow = walletTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const outflow = walletTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
   const balance = 2140;
 
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(DEPOSIT_ADDRESS);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback is manual selection; the address is already visible.
-    }
-  };
 
   return (
     <div className="flex flex-col gap-6">
