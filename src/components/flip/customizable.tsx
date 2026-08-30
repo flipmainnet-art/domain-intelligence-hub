@@ -109,7 +109,7 @@ export function EditableMetric({
   return (
     <>
       <div onClick={onClick} className="cursor-default select-none">
-        <Metric label={data.label} value={data.value} delta={data.delta} tone={tone} />
+        <Metric label={data.label} value={data.value} delta={data.delta ?? ""} tone={tone} />
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
