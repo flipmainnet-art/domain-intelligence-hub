@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Copy, AlertTriangle } from "lucide-react";
-import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Btn, Cell, DataTable, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
+import { DepositDialog } from "@/components/flip/DepositDialog";
+import { EditableMetric } from "@/components/flip/customizable";
 import { money, walletTx } from "@/data/mock";
-
-const DEPOSIT_ADDRESS = "8QXEUP9FxnoytAkTiGRm1sBP2DGbD8kEqSevM22jrNWf";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({
