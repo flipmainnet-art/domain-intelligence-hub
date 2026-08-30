@@ -40,10 +40,21 @@ function WalletPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Available balance" value={money(balance)} delta="USDC" tone="primary" />
-        <Metric label="In escrow" value={money(38)} delta="1 active auction bid" />
-        <Metric label="Inflow · 60d" value={money(inflow)} tone="success" />
-        <Metric label="Outflow · 60d" value={money(outflow)} />
+        <EditableMetric
+          id="wallet.balance"
+          label="Available balance"
+          value={money(balance)}
+          delta="USDC"
+          tone="primary"
+        />
+        <EditableMetric
+          id="wallet.escrow"
+          label="In escrow"
+          value={money(38)}
+          delta="1 active auction bid"
+        />
+        <EditableMetric id="wallet.inflow" label="Inflow · 60d" value={money(inflow)} tone="success" />
+        <EditableMetric id="wallet.outflow" label="Outflow · 60d" value={money(outflow)} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
