@@ -51,18 +51,35 @@ function Dashboard() {
           <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-2.5">
             <div>
               <p className="label-xs">USDC Balance</p>
-              <p className="text-lg font-semibold tabular">$1,284.42</p>
+              <p className="text-lg font-semibold tabular">
+                <EditableText id="dashboard.balance" initial="$1,284.42" title="Edit USDC balance" />
+              </p>
             </div>
-            <Btn variant="primary">Deposit</Btn>
+            <Btn variant="primary" onClick={() => setDepositOpen(true)}>
+              Deposit
+            </Btn>
           </div>
         }
       />
 
+      <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Portfolio Cost" value="$1,240" delta="37 acquisitions" />
-        <Metric label="Estimated Value" value="$7,850" delta="+18.4% vs last month" />
-        <Metric label="Unrealized Profit" value="+$6,610" tone="success" delta="533% return" />
-        <Metric label="Domains" value="37" delta="4 listed · 2 offers" />
+        <EditableMetric id="dashboard.cost" label="Portfolio Cost" value="$1,240" delta="37 acquisitions" />
+        <EditableMetric
+          id="dashboard.estvalue"
+          label="Estimated Value"
+          value="$7,850"
+          delta="+18.4% vs last month"
+        />
+        <EditableMetric
+          id="dashboard.profit"
+          label="Unrealized Profit"
+          value="+$6,610"
+          tone="success"
+          delta="533% return"
+        />
+        <EditableMetric id="dashboard.domains" label="Domains" value="37" delta="4 listed · 2 offers" />
       </div>
 
       <Panel
