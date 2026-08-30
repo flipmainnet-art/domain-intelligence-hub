@@ -39,6 +39,7 @@ const icons = {
 
 function Dashboard() {
   const [range, setRange] = useState("3M");
+  const [depositOpen, setDepositOpen] = useState(false);
   const top = opportunities.slice(0, 5);
 
   return (
