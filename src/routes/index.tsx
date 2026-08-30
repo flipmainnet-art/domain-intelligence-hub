@@ -10,7 +10,9 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowUpRight, Bell, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
-import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
+import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
+import { DepositDialog } from "@/components/flip/DepositDialog";
+import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
 import { activity, money, opportunities, perfSeries } from "@/data/mock";
 
 export const Route = createFileRoute("/")({
