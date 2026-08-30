@@ -10,7 +10,9 @@ import {
   YAxis,
 } from "recharts";
 import { ArrowUpRight, Bell, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
-import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
+import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
+import { DepositDialog } from "@/components/flip/DepositDialog";
+import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
 import { activity, money, opportunities, perfSeries } from "@/data/mock";
 
 export const Route = createFileRoute("/")({
@@ -37,6 +39,7 @@ const icons = {
 
 function Dashboard() {
   const [range, setRange] = useState("3M");
+  const [depositOpen, setDepositOpen] = useState(false);
   const top = opportunities.slice(0, 5);
 
   return (
@@ -48,18 +51,35 @@ function Dashboard() {
           <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-2.5">
             <div>
               <p className="label-xs">USDC Balance</p>
-              <p className="text-lg font-semibold tabular">$1,284.42</p>
+              <p className="text-lg font-semibold tabular">
+                <EditableText id="dashboard.balance" initial="$1,284.42" title="Edit USDC balance" />
+              </p>
             </div>
-            <Btn variant="primary">Deposit</Btn>
+            <Btn variant="primary" onClick={() => setDepositOpen(true)}>
+              Deposit
+            </Btn>
           </div>
         }
       />
 
+      <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Portfolio Cost" value="$1,240" delta="37 acquisitions" />
-        <Metric label="Estimated Value" value="$7,850" delta="+18.4% vs last month" />
-        <Metric label="Unrealized Profit" value="+$6,610" tone="success" delta="533% return" />
-        <Metric label="Domains" value="37" delta="4 listed · 2 offers" />
+        <EditableMetric id="dashboard.cost" label="Portfolio Cost" value="$1,240" delta="37 acquisitions" />
+        <EditableMetric
+          id="dashboard.estvalue"
+          label="Estimated Value"
+          value="$7,850"
+          delta="+18.4% vs last month"
+        />
+        <EditableMetric
+          id="dashboard.profit"
+          label="Unrealized Profit"
+          value="+$6,610"
+          tone="success"
+          delta="533% return"
+        />
+        <EditableMetric id="dashboard.domains" label="Domains" value="37" delta="4 listed · 2 offers" />
       </div>
 
       <Panel
@@ -82,58 +102,62 @@ function Dashboard() {
           </div>
         }
       >
-        <div className="h-[300px] px-2 py-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={perfSeries} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="t"
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                width={56}
-                tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
-              />
-              <Tooltip
-                cursor={{ stroke: "var(--border-strong)" }}
-                contentStyle={{
-                  background: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: "var(--muted-foreground)" }}
-                formatter={(v: number, n) => [money(v), n === "value" ? "Est. value" : "Cost basis"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="var(--primary)"
-                strokeWidth={1.75}
-                fill="url(#pv)"
-              />
-              <Area
-                type="monotone"
-                dataKey="cost"
-                stroke="var(--muted-foreground)"
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                fill="none"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <EditableSeries id="dashboard.perf" initial={perfSeries}>
+          {(series) => (
+            <div className="h-[300px] px-2 py-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="t"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={56}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                    tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                  />
+                  <Tooltip
+                    cursor={{ stroke: "var(--border-strong)" }}
+                    contentStyle={{
+                      background: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      fontSize: 12,
+                    }}
+                    labelStyle={{ color: "var(--muted-foreground)" }}
+                    formatter={(v: number, n) => [money(v), n === "value" ? "Est. value" : "Cost basis"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    strokeWidth={1.75}
+                    fill="url(#pv)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="cost"
+                    stroke="var(--muted-foreground)"
+                    strokeWidth={1}
+                    strokeDasharray="3 3"
+                    fill="none"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </EditableSeries>
       </Panel>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
