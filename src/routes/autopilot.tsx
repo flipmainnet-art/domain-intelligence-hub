@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Btn, Cell, DataTable, Field, Input, Metric, PageHeader, Panel, Row, Select, Tag, Toggle } from "@/components/flip/kit";
 import { money } from "@/data/mock";
+import { formatRuntime, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/autopilot")({
   head: () => ({
