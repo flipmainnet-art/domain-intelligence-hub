@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBot } from "@/lib/bot";
 
 type Item = { to: string; label: string; icon: React.ElementType };
 
@@ -79,6 +80,7 @@ function NavLink({ item, onNavigate }: { item: Item; onNavigate?: (() => void) |
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  const { snapshot: bot } = useBot();
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-14 items-center border-b border-sidebar-border px-5">
@@ -115,10 +117,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
 
       <div className="flex items-center gap-2 border-t border-sidebar-border px-5 py-3">
         <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+          {bot.running ? (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+          ) : null}
+          <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", bot.running ? "bg-success" : "bg-muted-foreground")} />
         </span>
-        <span className="text-[11px] text-muted-foreground">Flipmain is hunting</span>
+        <span className="text-[11px] text-muted-foreground">
+          {bot.running ? "Flipmain is hunting" : "Flipmain is idle"}
+        </span>
       </div>
     </div>
   );
