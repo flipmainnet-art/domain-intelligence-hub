@@ -19,10 +19,21 @@ export const Route = createFileRoute("/wallet")({
 
 function WalletPage() {
   const [depositOpen, setDepositOpen] = useState(false);
-  const inflow = walletTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const outflow = walletTx.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
-  const balance = 2140;
+  const { snapshot: bot } = useBot();
 
+  const inflow = bot.sold.reduce((s, p) => s + p.salePrice, 0);
+  const outflow = -bot.cost;
+  const balance = inflow + outflow;
+
+  const tx = bot.activity
+    .filter((a) => a.kind === "buy" || a.kind === "sale")
+    .map((a) => ({
+      date: formatRuntime(a.atMs),
+      type: a.kind === "buy" ? "Domain purchase" : "Domain sale",
+      status: "Completed",
+      amount: 0,
+      text: a.text,
+    }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -43,19 +54,20 @@ function WalletPage() {
         <EditableMetric
           id="wallet.balance"
           label="Available balance"
-          value={money(balance)}
+          value={money(Math.round(balance))}
           delta="USDC"
           tone="primary"
         />
         <EditableMetric
           id="wallet.escrow"
           label="In escrow"
-          value={money(38)}
-          delta="1 active auction bid"
+          value={money(0)}
+          delta="No active auction bids"
         />
-        <EditableMetric id="wallet.inflow" label="Inflow · 60d" value={money(inflow)} tone="success" />
-        <EditableMetric id="wallet.outflow" label="Outflow · 60d" value={money(outflow)} />
+        <EditableMetric id="wallet.inflow" label="Sale proceeds" value={money(inflow)} tone="success" />
+        <EditableMetric id="wallet.outflow" label="Acquisition spend" value={money(outflow)} />
       </div>
+
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Panel title="Recent transactions" className="lg:col-span-2">
