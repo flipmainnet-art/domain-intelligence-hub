@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Select, Tag } from "@/components/flip/kit";
-import { holdings, money, slugify } from "@/data/mock";
+import { money, slugify } from "@/data/mock";
+import { formatRuntime, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/my-domains")({
   head: () => ({
@@ -20,31 +21,43 @@ const tone = (s: string) =>
 
 function MyDomains() {
   const [status, setStatus] = useState("all");
+  const { snapshot: bot } = useBot();
 
-  const rows = useMemo(
-    () => holdings.filter((h) => status === "all" || h.status === status),
-    [status],
+  const all = useMemo(
+    () =>
+      bot.positions.map((p) => {
+        const sold = Boolean(p.soldAtMs && p.soldAtMs <= bot.runtimeMs);
+        return {
+          domain: p.domain,
+          acquired: formatRuntime(p.atMs),
+          cost: p.cost,
+          estValue: sold ? p.salePrice : Math.round(p.baseValue),
+          status: sold ? "Sold" : p.index % 3 === 0 ? "Listed" : "Owned",
+        };
+      }),
+    [bot.positions, bot.runtimeMs],
   );
 
-  const cost = holdings.reduce((s, h) => s + h.cost, 0);
-  const value = holdings.reduce((s, h) => s + h.estValue, 0);
+  const rows = all.filter((h) => status === "all" || h.status === status);
+  const cost = all.reduce((s, h) => s + h.cost, 0);
+  const value = all.reduce((s, h) => s + h.estValue, 0);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Domains"
-        subtitle="Everything you own, with live valuation and status."
+        subtitle="Everything the bot owns, with live valuation and status."
         right={<Btn variant="primary">Import domain</Btn>}
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Domains owned" value={String(holdings.length)} />
+        <Metric label="Domains owned" value={String(all.length)} />
         <Metric label="Total cost basis" value={money(cost)} />
         <Metric label="Estimated value" value={money(value)} tone="primary" />
         <Metric
           label="Unrealized gain"
           value={money(value - cost)}
-          delta={`${Math.round(((value - cost) / cost) * 100)}% return`}
+          delta={`${cost ? Math.round(((value - cost) / cost) * 100) : 0}% return`}
           tone="success"
         />
       </div>
@@ -56,32 +69,37 @@ function MyDomains() {
             <option value="all">All statuses</option>
             <option value="Owned">Owned</option>
             <option value="Listed">Listed</option>
-            <option value="Offer Received">Offer Received</option>
             <option value="Sold">Sold</option>
           </Select>
         }
       >
-        <DataTable head={["Domain", "Acquired", "Cost", "Est. Value", "Gain", "Status", ""]}>
-          {rows.map((h) => (
-            <Row key={h.domain}>
-              <Cell>
-                <Link to="/domain/$domain" params={{ domain: slugify(h.domain) }} className="font-medium hover:text-primary">
-                  {h.domain}
-                </Link>
-              </Cell>
-              <Cell className="tabular text-muted-foreground">{h.acquired}</Cell>
-              <Cell className="tabular">{money(h.cost)}</Cell>
-              <Cell className="tabular">{money(h.estValue)}</Cell>
-              <Cell className="tabular text-success">+{money(h.estValue - h.cost)}</Cell>
-              <Cell>
-                <Tag tone={tone(h.status) as never}>{h.status}</Tag>
-              </Cell>
-              <Cell align="right">
-                <Btn size="sm">{h.listPrice ? "Manage" : "List for sale"}</Btn>
-              </Cell>
-            </Row>
-          ))}
-        </DataTable>
+        {rows.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">
+            No domains yet. Start the bot from the dashboard and acquisitions will appear here.
+          </p>
+        ) : (
+          <DataTable head={["Domain", "Acquired at", "Cost", "Est. Value", "Gain", "Status", ""]}>
+            {rows.map((h) => (
+              <Row key={h.domain}>
+                <Cell>
+                  <Link to="/domain/$domain" params={{ domain: slugify(h.domain) }} className="font-medium hover:text-primary">
+                    {h.domain}
+                  </Link>
+                </Cell>
+                <Cell className="tabular text-muted-foreground">{h.acquired}</Cell>
+                <Cell className="tabular">{money(h.cost)}</Cell>
+                <Cell className="tabular">{money(h.estValue)}</Cell>
+                <Cell className="tabular text-success">+{money(h.estValue - h.cost)}</Cell>
+                <Cell>
+                  <Tag tone={tone(h.status) as never}>{h.status}</Tag>
+                </Cell>
+                <Cell align="right">
+                  <Btn size="sm">{h.status === "Listed" ? "Manage" : "List for sale"}</Btn>
+                </Cell>
+              </Row>
+            ))}
+          </DataTable>
+        )}
       </Panel>
     </div>
   );
