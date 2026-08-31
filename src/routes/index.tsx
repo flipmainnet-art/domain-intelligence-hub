@@ -9,11 +9,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Bell, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
+import { ArrowUpRight, Bell, Pause, Play, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
 import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
 import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
-import { activity, money, opportunities, perfSeries } from "@/data/mock";
+import { money, opportunities } from "@/data/mock";
+import { formatRuntime, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,32 +32,67 @@ const ranges = ["7D", "30D", "3M", "1Y", "ALL"];
 
 const icons = {
   buy: ShoppingCart,
+  sale: TagIcon,
   alert: Bell,
-  offer: TagIcon,
   scan: Radar,
   list: TagIcon,
 };
 
+function ago(atMs: number, nowMs: number) {
+  const s = Math.max(0, Math.round((nowMs - atMs) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  return `${Math.floor(m / 60)}h ${m % 60}m ago`;
+}
+
 function Dashboard() {
   const [range, setRange] = useState("3M");
   const [depositOpen, setDepositOpen] = useState(false);
+  const { snapshot: bot, state, start, pause } = useBot();
   const top = opportunities.slice(0, 5);
+
+  const balance = 0 + bot.sold.reduce((s, p) => s + p.salePrice, 0) - bot.cost;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Good morning"
-        subtitle="Your domain portfolio at a glance."
+        subtitle={
+          bot.running
+            ? `Autopilot running · ${formatRuntime(bot.runtimeMs)} · ${bot.scanned.toLocaleString()} domains scanned`
+            : "Autopilot is idle. Start the bot to begin scanning and acquiring."
+        }
         right={
-          <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-2.5">
-            <div>
-              <p className="label-xs">USDC Balance</p>
-              <p className="text-lg font-semibold tabular">
-                <EditableText id="dashboard.balance" initial="$1,284.42" title="Edit USDC balance" />
-              </p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-2.5">
+              <div>
+                <p className="label-xs">USDC Balance</p>
+                <p className="text-lg font-semibold tabular">
+                  <EditableText
+                    id="dashboard.balance"
+                    initial={money(Math.round(balance))}
+                    title="Edit USDC balance"
+                  />
+                </p>
+              </div>
+              <Btn variant="primary" onClick={() => setDepositOpen(true)}>
+                Deposit
+              </Btn>
             </div>
-            <Btn variant="primary" onClick={() => setDepositOpen(true)}>
-              Deposit
+            <Btn
+              variant={bot.running ? "secondary" : "primary"}
+              onClick={() => (bot.running ? pause() : start())}
+            >
+              {bot.running ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Pause className="h-3.5 w-3.5" /> Pause bot
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <Play className="h-3.5 w-3.5" /> Start bot
+                </span>
+              )}
             </Btn>
           </div>
         }
@@ -65,21 +101,31 @@ function Dashboard() {
       <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <EditableMetric id="dashboard.cost" label="Portfolio Cost" value="$1,240" delta="37 acquisitions" />
+        <EditableMetric
+          id="dashboard.cost"
+          label="Portfolio Cost"
+          value={money(bot.cost)}
+          delta={`${bot.positions.length} acquisitions`}
+        />
         <EditableMetric
           id="dashboard.estvalue"
           label="Estimated Value"
-          value="$7,850"
-          delta="+18.4% vs last month"
+          value={money(bot.estValue)}
+          delta={bot.realized ? `${money(bot.realized)} realised` : "No sales yet"}
         />
         <EditableMetric
           id="dashboard.profit"
           label="Unrealized Profit"
-          value="+$6,610"
-          tone="success"
-          delta="533% return"
+          value={`${bot.unrealized >= 0 ? "+" : ""}${money(bot.unrealized)}`}
+          tone={bot.unrealized > 0 ? "success" : "default"}
+          delta={`${bot.roi}% return`}
         />
-        <EditableMetric id="dashboard.domains" label="Domains" value="37" delta="4 listed · 2 offers" />
+        <EditableMetric
+          id="dashboard.domains"
+          label="Domains"
+          value={String(bot.domains)}
+          delta={`${bot.sold.length} sold`}
+        />
       </div>
 
       <Panel
@@ -102,7 +148,7 @@ function Dashboard() {
           </div>
         }
       >
-        <EditableSeries id="dashboard.perf" initial={perfSeries}>
+        <EditableSeries id="dashboard.perf" initial={bot.series}>
           {(series) => (
             <div className="h-[300px] px-2 py-4">
               <ResponsiveContainer width="100%" height="100%">
@@ -125,7 +171,7 @@ function Dashboard() {
                     axisLine={false}
                     width={56}
                     tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+                    tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`)}
                   />
                   <Tooltip
                     cursor={{ stroke: "var(--border-strong)" }}
@@ -144,6 +190,7 @@ function Dashboard() {
                     stroke="var(--primary)"
                     strokeWidth={1.75}
                     fill="url(#pv)"
+                    isAnimationActive={false}
                   />
                   <Area
                     type="monotone"
@@ -152,6 +199,7 @@ function Dashboard() {
                     strokeWidth={1}
                     strokeDasharray="3 3"
                     fill="none"
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -206,20 +254,33 @@ function Dashboard() {
         </Panel>
 
         <Panel title="Recent Activity">
-          <ul className="divide-y divide-border/60">
-            {activity.map((a) => {
-              const Icon = icons[a.kind];
-              return (
-                <li key={a.text} className="flex items-start gap-3 px-5 py-3.5">
-                  <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <div className="min-w-0">
-                    <p className="text-[13px] leading-5 text-foreground">{a.text}</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{a.time}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          {bot.activity.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <p className="text-[13px] text-muted-foreground">
+                {state.running ? "Scanning the drop lists…" : "No activity yet."}
+              </p>
+              {!state.running ? (
+                <Btn variant="primary" size="sm" className="mt-3" onClick={start}>
+                  Start bot
+                </Btn>
+              ) : null}
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {bot.activity.map((a) => {
+                const Icon = icons[a.kind] ?? Radar;
+                return (
+                  <li key={`${a.kind}-${a.atMs}-${a.text}`} className="flex items-start gap-3 px-5 py-3.5">
+                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="text-[13px] leading-5 text-foreground">{a.text}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{ago(a.atMs, bot.runtimeMs)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Panel>
       </div>
     </div>
