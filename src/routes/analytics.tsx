@@ -14,7 +14,8 @@ import {
   YAxis,
 } from "recharts";
 import { Metric, PageHeader, Panel } from "@/components/flip/kit";
-import { holdings, money, perfSeries } from "@/data/mock";
+import { money } from "@/data/mock";
+import { useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
@@ -28,23 +29,6 @@ export const Route = createFileRoute("/analytics")({
   component: Analytics,
 });
 
-const acquisitions = [
-  { m: "Mar", n: 3 },
-  { m: "Apr", n: 5 },
-  { m: "May", n: 4 },
-  { m: "Jun", n: 7 },
-  { m: "Jul", n: 6 },
-  { m: "Aug", n: 9 },
-];
-
-const allocation = [
-  { name: "Fintech", value: 38 },
-  { name: "AI", value: 26 },
-  { name: "SaaS", value: 19 },
-  { name: "Infrastructure", value: 10 },
-  { name: "Other", value: 7 },
-];
-
 const shades = ["var(--color-primary)", "var(--color-success)", "var(--color-border-strong)", "var(--color-muted-foreground)", "var(--color-secondary)"];
 
 const tooltipStyle = {
@@ -56,8 +40,28 @@ const tooltipStyle = {
 };
 
 function Analytics() {
-  const cost = holdings.reduce((s, h) => s + h.cost, 0);
-  const value = holdings.reduce((s, h) => s + h.estValue, 0);
+  const { snapshot: bot } = useBot();
+  const cost = bot.cost;
+  const value = bot.estValue;
+
+  const buckets = 6;
+  const acquisitions = Array.from({ length: buckets }, (_, i) => {
+    const from = (bot.runtimeMs * i) / buckets;
+    const to = (bot.runtimeMs * (i + 1)) / buckets;
+    return {
+      m: `P${i + 1}`,
+      n: bot.positions.filter((p) => p.atMs > from && p.atMs <= to).length,
+    };
+  });
+
+  const byCategory = bot.positions.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] ?? 0) + p.cost;
+    return acc;
+  }, {});
+  const allocation = Object.entries(byCategory).map(([name, v]) => ({
+    name,
+    value: cost ? Math.round((v / cost) * 100) : 0,
+  }));
 
   return (
     <div className="space-y-6">
@@ -66,14 +70,14 @@ function Analytics() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="Portfolio value" value={money(value)} tone="primary" />
         <Metric label="Invested" value={money(cost)} />
-        <Metric label="Net return" value={`+${Math.round(((value - cost) / cost) * 100)}%`} tone="success" />
-        <Metric label="Realized P&L" value={money(942)} delta="1 domain sold" />
+        <Metric label="Net return" value={`${bot.roi}%`} tone="success" />
+        <Metric label="Realized P&L" value={money(bot.realized)} delta={`${bot.sold.length} domains sold`} />
       </div>
 
       <Panel title="Portfolio value vs cost basis">
         <div className="h-[300px] px-2 py-4">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={perfSeries} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <AreaChart data={bot.series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="an-v" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.28} />

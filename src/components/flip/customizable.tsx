@@ -13,12 +13,12 @@ const PREFIX = "flipmain.custom.";
 
 /** Reads/writes a persisted override without ever hinting at it in the UI. */
 export function useOverride<T>(id: string, initial: T) {
-  const [value, setValue] = useState<T>(initial);
+  const [override, setOverride] = useState<T | null>(null);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PREFIX + id);
-      if (raw) setValue(JSON.parse(raw) as T);
+      if (raw) setOverride(JSON.parse(raw) as T);
     } catch {
       /* ignore */
     }
@@ -26,7 +26,7 @@ export function useOverride<T>(id: string, initial: T) {
 
   const save = useCallback(
     (next: T) => {
-      setValue(next);
+      setOverride(next);
       try {
         localStorage.setItem(PREFIX + id, JSON.stringify(next));
       } catch {
@@ -37,17 +37,18 @@ export function useOverride<T>(id: string, initial: T) {
   );
 
   const reset = useCallback(() => {
-    setValue(initial);
+    setOverride(null);
     try {
       localStorage.removeItem(PREFIX + id);
     } catch {
       /* ignore */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  return { value, save, reset };
+  // Live values keep flowing until the user pins an override on this device.
+  return { value: override ?? initial, save, reset };
 }
+
 
 /** Fires only after 5 clicks in a row within a short window. Invisible otherwise. */
 export function useSecretUnlock(onUnlock: () => void, clicks = 5, windowMs = 1400) {

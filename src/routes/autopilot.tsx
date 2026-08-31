@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Btn, Cell, DataTable, Field, Input, Metric, PageHeader, Panel, Row, Select, Tag, Toggle } from "@/components/flip/kit";
 import { money } from "@/data/mock";
+import { formatRuntime, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/autopilot")({
   head: () => ({
@@ -15,19 +16,20 @@ export const Route = createFileRoute("/autopilot")({
   component: Autopilot,
 });
 
-const runs = [
-  { time: "18:42", domain: "NovaLedger.com", action: "Acquired", amount: -42, rule: "Fintech · Score ≥ 90" },
-  { time: "17:10", domain: "Pulsegrid.ai", action: "Skipped", amount: 0, rule: "Budget guard" },
-  { time: "15:03", domain: "Kernelbay.com", action: "Bid placed", amount: -47, rule: "Auctions · ROI ≥ 500%" },
-  { time: "11:27", domain: "Signalcrest.ai", action: "Watchlisted", amount: 0, rule: "AI · Score ≥ 85" },
-  { time: "09:14", domain: "Lumenstack.io", action: "Skipped", amount: 0, rule: "TLD filter" },
-];
-
 function Autopilot() {
-  const [on, setOn] = useState(true);
+  const { snapshot: bot, toggle } = useBot();
   const [autoBid, setAutoBid] = useState(true);
   const [autoList, setAutoList] = useState(false);
   const [notify, setNotify] = useState(true);
+
+  const runs = bot.activity.map((a) => ({
+    time: formatRuntime(a.atMs),
+    text: a.text,
+    action: a.kind === "buy" ? "Acquired" : a.kind === "sale" ? "Sold" : "Scanned",
+    rule: a.kind === "scan" ? "Discovery sweep" : "Score ≥ 85 · ROI ≥ 500%",
+  }));
+
+  const avgCost = bot.positions.length ? Math.round(bot.cost / bot.positions.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -36,18 +38,23 @@ function Autopilot() {
         subtitle="Let Flipmain execute your strategy while you sleep — within limits you define."
         right={
           <div className="flex items-center gap-3">
-            <Tag tone={on ? "success" : "default"}>{on ? "Active" : "Paused"}</Tag>
-            <Toggle on={on} onChange={setOn} label="Autopilot enabled" />
+            <Tag tone={bot.running ? "success" : "default"}>{bot.running ? "Active" : "Paused"}</Tag>
+            <Toggle on={bot.running} onChange={toggle} label="Autopilot enabled" />
           </div>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Monthly budget used" value={`${money(164)} / ${money(500)}`} delta="33% consumed" />
-        <Metric label="Acquisitions this month" value="4" tone="primary" />
-        <Metric label="Avg. acquisition cost" value={money(41)} />
-        <Metric label="Est. value added" value={money(5820)} tone="success" />
+        <Metric
+          label="Monthly budget used"
+          value={`${money(bot.cost)} / ${money(500)}`}
+          delta={`${Math.min(100, Math.round((bot.cost / 500) * 100))}% consumed`}
+        />
+        <Metric label="Acquisitions this month" value={String(bot.positions.length)} tone="primary" />
+        <Metric label="Avg. acquisition cost" value={money(avgCost)} />
+        <Metric label="Est. value added" value={money(bot.estValue + bot.realized)} tone="success" />
       </div>
+
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <Panel title="Acquisition rules">
@@ -101,24 +108,28 @@ function Autopilot() {
         </Panel>
 
         <Panel title="Recent activity">
-          <DataTable head={["Time", "Domain", "Action", "Rule", "Amount"]}>
-            {runs.map((r) => (
-              <Row key={r.time}>
-                <Cell className="tabular text-muted-foreground">{r.time}</Cell>
-                <Cell className="font-medium">{r.domain}</Cell>
-                <Cell>
-                  <Tag tone={r.action === "Acquired" ? "success" : r.action === "Skipped" ? "default" : "primary"}>
-                    {r.action}
-                  </Tag>
-                </Cell>
-                <Cell className="text-muted-foreground">{r.rule}</Cell>
-                <Cell align="right" className="tabular">
-                  {r.amount ? money(r.amount) : "—"}
-                </Cell>
-              </Row>
-            ))}
-          </DataTable>
+          {runs.length === 0 ? (
+            <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">
+              Autopilot has not executed anything yet. Enable it to start hunting.
+            </p>
+          ) : (
+            <DataTable head={["Runtime", "Event", "Action", "Rule"]}>
+              {runs.map((r, i) => (
+                <Row key={i}>
+                  <Cell className="tabular text-muted-foreground">{r.time}</Cell>
+                  <Cell className="font-medium">{r.text}</Cell>
+                  <Cell>
+                    <Tag tone={r.action === "Acquired" ? "success" : r.action === "Sold" ? "primary" : "default"}>
+                      {r.action}
+                    </Tag>
+                  </Cell>
+                  <Cell className="text-muted-foreground">{r.rule}</Cell>
+                </Row>
+              ))}
+            </DataTable>
+          )}
         </Panel>
+
       </div>
     </div>
   );
