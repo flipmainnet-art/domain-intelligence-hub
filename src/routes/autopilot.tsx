@@ -107,24 +107,28 @@ function Autopilot() {
         </Panel>
 
         <Panel title="Recent activity">
-          <DataTable head={["Time", "Domain", "Action", "Rule", "Amount"]}>
-            {runs.map((r) => (
-              <Row key={r.time}>
-                <Cell className="tabular text-muted-foreground">{r.time}</Cell>
-                <Cell className="font-medium">{r.domain}</Cell>
-                <Cell>
-                  <Tag tone={r.action === "Acquired" ? "success" : r.action === "Skipped" ? "default" : "primary"}>
-                    {r.action}
-                  </Tag>
-                </Cell>
-                <Cell className="text-muted-foreground">{r.rule}</Cell>
-                <Cell align="right" className="tabular">
-                  {r.amount ? money(r.amount) : "—"}
-                </Cell>
-              </Row>
-            ))}
-          </DataTable>
+          {runs.length === 0 ? (
+            <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">
+              Autopilot has not executed anything yet. Enable it to start hunting.
+            </p>
+          ) : (
+            <DataTable head={["Runtime", "Event", "Action", "Rule"]}>
+              {runs.map((r, i) => (
+                <Row key={i}>
+                  <Cell className="tabular text-muted-foreground">{r.time}</Cell>
+                  <Cell className="font-medium">{r.text}</Cell>
+                  <Cell>
+                    <Tag tone={r.action === "Acquired" ? "success" : r.action === "Sold" ? "primary" : "default"}>
+                      {r.action}
+                    </Tag>
+                  </Cell>
+                  <Cell className="text-muted-foreground">{r.rule}</Cell>
+                </Row>
+              ))}
+            </DataTable>
+          )}
         </Panel>
+
       </div>
     </div>
   );
