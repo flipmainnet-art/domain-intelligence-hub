@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Btn, Cell, DataTable, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
+import { WithdrawDialog } from "@/components/flip/WithdrawDialog";
 import { EditableMetric } from "@/components/flip/customizable";
 import { money } from "@/data/mock";
 import { formatRuntime, useBot } from "@/lib/bot";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/wallet")({
 
 function WalletPage() {
   const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { snapshot: bot } = useBot();
 
   const inflow = bot.sold.reduce((s, p) => s + p.salePrice, 0);
@@ -49,7 +51,7 @@ function WalletPage() {
             <Btn variant="primary" onClick={() => setDepositOpen(true)}>
               Add funds
             </Btn>
-            <Btn>Withdraw</Btn>
+            <Btn onClick={() => setWithdrawOpen(true)}>Withdraw</Btn>
           </div>
         }
       />
@@ -134,6 +136,11 @@ function WalletPage() {
       </div>
 
       <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        available={Math.max(0, Math.round(balance))}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { ArrowUpRight, Bell, Pause, Play, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
 import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
+import { WithdrawDialog } from "@/components/flip/WithdrawDialog";
 import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
 import { money, opportunities } from "@/data/mock";
 import { formatRuntime, useBot } from "@/lib/bot";
@@ -49,6 +50,7 @@ function ago(atMs: number, nowMs: number) {
 function Dashboard() {
   const [range, setRange] = useState("3M");
   const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { snapshot: bot, state, start, pause } = useBot();
   const top = opportunities.slice(0, 5);
 
@@ -79,6 +81,9 @@ function Dashboard() {
               <Btn variant="primary" onClick={() => setDepositOpen(true)}>
                 Deposit
               </Btn>
+              <Btn variant="secondary" onClick={() => setWithdrawOpen(true)}>
+                Withdraw
+              </Btn>
             </div>
             <Btn
               variant={bot.running ? "secondary" : "primary"}
@@ -99,6 +104,11 @@ function Dashboard() {
       />
 
       <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        available={Math.max(0, Math.round(balance))}
+      />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <EditableMetric
