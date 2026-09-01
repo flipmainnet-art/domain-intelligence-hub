@@ -112,7 +112,13 @@ function positions(ms: number): Position[] {
     const saleAt = p.atMs + HOLD_MS + rnd(p.index, 6) * HOLD_MS * 2;
     if (saleAt <= ms) {
       p.soldAtMs = saleAt;
-      p.salePrice = Math.round(p.baseValue * (0.45 + rnd(p.index, 7) * 0.45));
+      // About 3 in 10 exits close at a loss — the bot cuts underperformers
+      // below cost instead of holding them forever.
+      if (rnd(p.index, 12) < 0.3) {
+        p.salePrice = Math.max(4, Math.round(p.cost * (0.35 + rnd(p.index, 7) * 0.55)));
+      } else {
+        p.salePrice = Math.round(p.baseValue * (0.45 + rnd(p.index, 7) * 0.45));
+      }
     }
   }
   return out;
@@ -200,8 +206,9 @@ export function snapshot(state: BotState): BotSnapshot {
       kind: "buy",
     });
     if (p.soldAtMs && p.soldAtMs <= ms) {
+      const pnl = p.salePrice - p.cost;
       activity.push({
-        text: `Sold ${p.domain} for $${p.salePrice.toLocaleString()}`,
+        text: `Sold ${p.domain} for $${p.salePrice.toLocaleString()} (${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toLocaleString()})`,
         atMs: p.soldAtMs,
         kind: "sale",
       });
