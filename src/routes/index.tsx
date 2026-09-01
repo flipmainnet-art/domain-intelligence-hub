@@ -81,6 +81,9 @@ function Dashboard() {
               <Btn variant="primary" onClick={() => setDepositOpen(true)}>
                 Deposit
               </Btn>
+              <Btn variant="secondary" onClick={() => setWithdrawOpen(true)}>
+                Withdraw
+              </Btn>
             </div>
             <Btn
               variant={bot.running ? "secondary" : "primary"}
