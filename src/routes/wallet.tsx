@@ -51,7 +51,7 @@ function WalletPage() {
             <Btn variant="primary" onClick={() => setDepositOpen(true)}>
               Add funds
             </Btn>
-            <Btn>Withdraw</Btn>
+            <Btn onClick={() => setWithdrawOpen(true)}>Withdraw</Btn>
           </div>
         }
       />
