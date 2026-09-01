@@ -136,6 +136,11 @@ function WalletPage() {
       </div>
 
       <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
+      <WithdrawDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        available={Math.max(0, Math.round(balance))}
+      />
     </div>
   );
 }
