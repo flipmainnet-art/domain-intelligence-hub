@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Btn, Cell, DataTable, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
+import { WithdrawDialog } from "@/components/flip/WithdrawDialog";
 import { EditableMetric } from "@/components/flip/customizable";
 import { money } from "@/data/mock";
 import { formatRuntime, useBot } from "@/lib/bot";
