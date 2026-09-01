@@ -12,6 +12,7 @@ import {
 import { ArrowUpRight, Bell, Pause, Play, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
 import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
+import { WithdrawDialog } from "@/components/flip/WithdrawDialog";
 import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
 import { money, opportunities } from "@/data/mock";
 import { formatRuntime, useBot } from "@/lib/bot";
