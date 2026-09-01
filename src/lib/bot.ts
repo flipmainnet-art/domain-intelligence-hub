@@ -82,10 +82,10 @@ export type Position = {
 };
 
 /** Average seconds between acquisitions. */
-const GAP_BASE = 42;
-const GAP_JITTER = 70;
+const GAP_BASE = 150;
+const GAP_JITTER = 220;
 /** A position becomes eligible for a sale after this much runtime. */
-const HOLD_MS = 6 * 60 * 1000;
+const HOLD_MS = 22 * 60 * 1000;
 
 function positions(ms: number): Position[] {
   const out: Position[] = [];
