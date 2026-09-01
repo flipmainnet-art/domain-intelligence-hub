@@ -128,8 +128,8 @@ function positions(ms: number): Position[] {
 /** Slow, noisy appreciation applied to a position since acquisition. */
 function drift(p: Position, ms: number) {
   const held = Math.max(0, ms - p.atMs) / 1000;
-  const trend = 1 + held * 0.00018;
-  const noise = 1 + Math.sin(held / 47 + p.index) * 0.012;
+  const trend = 1 + held * 0.000025;
+  const noise = 1 + Math.sin(held / 47 + p.index) * 0.008;
   return p.baseValue * trend * noise;
 }
 
