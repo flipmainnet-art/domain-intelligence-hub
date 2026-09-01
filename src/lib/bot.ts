@@ -89,10 +89,10 @@ const HOLD_MS = 22 * 60 * 1000;
 
 function positions(ms: number): Position[] {
   const out: Position[] = [];
-  let t = 18_000 + rnd(0, 9) * 20_000; // first find takes a little while
+  let t = 70_000 + rnd(0, 9) * 60_000; // first find takes a little while
   for (let i = 0; i < 400 && t <= ms; i++) {
     const cost = Math.round(18 + rnd(i, 1) * 180);
-    const multiple = 5 + rnd(i, 2) * 26;
+    const multiple = 1.15 + rnd(i, 2) * 1.6;
     out.push({
       index: i,
       domain: NAMES[i % NAMES.length]!,
@@ -106,23 +106,24 @@ function positions(ms: number): Position[] {
     t += (GAP_BASE + rnd(i, 4) * GAP_JITTER) * 1000;
   }
 
-  // Roughly one in four matured positions finds a buyer.
+  // Roughly one in five matured positions finds a buyer.
   for (const p of out) {
-    if (rnd(p.index, 5) > 0.26) continue;
+    if (rnd(p.index, 5) > 0.2) continue;
     const saleAt = p.atMs + HOLD_MS + rnd(p.index, 6) * HOLD_MS * 2;
     if (saleAt <= ms) {
       p.soldAtMs = saleAt;
-      // About 3 in 10 exits close at a loss — the bot cuts underperformers
+      // About 4 in 10 exits close at a loss — the bot cuts underperformers
       // below cost instead of holding them forever.
-      if (rnd(p.index, 12) < 0.3) {
-        p.salePrice = Math.max(4, Math.round(p.cost * (0.35 + rnd(p.index, 7) * 0.55)));
+      if (rnd(p.index, 12) < 0.4) {
+        p.salePrice = Math.max(4, Math.round(p.cost * (0.45 + rnd(p.index, 7) * 0.45)));
       } else {
-        p.salePrice = Math.round(p.baseValue * (0.45 + rnd(p.index, 7) * 0.45));
+        p.salePrice = Math.round(p.baseValue * (0.7 + rnd(p.index, 7) * 0.35));
       }
     }
   }
   return out;
 }
+
 
 /** Slow, noisy appreciation applied to a position since acquisition. */
 function drift(p: Position, ms: number) {
