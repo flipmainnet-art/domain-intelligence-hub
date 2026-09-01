@@ -50,6 +50,7 @@ function ago(atMs: number, nowMs: number) {
 function Dashboard() {
   const [range, setRange] = useState("3M");
   const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { snapshot: bot, state, start, pause } = useBot();
   const top = opportunities.slice(0, 5);
 
