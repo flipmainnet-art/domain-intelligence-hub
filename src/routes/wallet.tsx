@@ -21,6 +21,7 @@ export const Route = createFileRoute("/wallet")({
 
 function WalletPage() {
   const [depositOpen, setDepositOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { snapshot: bot } = useBot();
 
   const inflow = bot.sold.reduce((s, p) => s + p.salePrice, 0);
