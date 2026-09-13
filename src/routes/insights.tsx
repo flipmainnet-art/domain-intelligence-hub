@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
-import { money, opportunities, roi, slugify } from "@/data/mock";
+import { Btn, Cell, DataTable, Input, Metric, PageHeader, Panel, Row, Score, Select, Tag } from "@/components/flip/kit";
+import { money, opportunities, roi, scanRoi, scannedDomains, slugify } from "@/data/mock";
 
 export const Route = createFileRoute("/insights")({
   head: () => ({
