@@ -24,9 +24,7 @@ function WalletPage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { snapshot: bot } = useBot();
 
-  const inflow = bot.sold.reduce((s, p) => s + p.salePrice, 0);
-  const outflow = -bot.cost;
-  const balance = inflow + outflow;
+  const balance = bot.balance;
 
   const tx = [
     ...bot.positions.map((pos) => ({
@@ -70,8 +68,8 @@ function WalletPage() {
           value={money(0)}
           delta="No active auction bids"
         />
-        <EditableMetric id="wallet.inflow" label="Sale proceeds" value={money(inflow)} tone="success" />
-        <EditableMetric id="wallet.outflow" label="Acquisition spend" value={money(outflow)} />
+        <EditableMetric id="wallet.inflow" label="Sale proceeds" value={money(bot.sold.reduce((s, p) => s + p.salePrice, 0))} tone="success" />
+        <EditableMetric id="wallet.outflow" label="Acquisition spend" value={money(-bot.cost)} />
       </div>
 
 

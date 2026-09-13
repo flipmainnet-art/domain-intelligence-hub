@@ -54,7 +54,7 @@ function Dashboard() {
   const { snapshot: bot, state, start, pause } = useBot();
   const top = opportunities.slice(0, 5);
 
-  const balance = 0 + bot.sold.reduce((s, p) => s + p.salePrice, 0) - bot.cost;
+  const balance = bot.balance;
 
   return (
     <div className="space-y-6">
