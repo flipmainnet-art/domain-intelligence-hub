@@ -120,6 +120,131 @@ function Insights() {
           ))}
         </DataTable>
       </Panel>
+
+      <ScanUniverse />
     </div>
+  );
+}
+
+const PAGE = 25;
+const CATS = ["All", "Fintech", "AI", "SaaS", "Infrastructure", "Data", "Technology", "Logistics", "Health", "Crypto", "Brandable"];
+
+function ScanUniverse() {
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState("All");
+  const [tld, setTld] = useState("all");
+  const [signal, setSignal] = useState("all");
+  const [sort, setSort] = useState("score");
+  const [page, setPage] = useState(0);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let list = scannedDomains.filter(
+      (d) =>
+        (needle === "" || d.domain.toLowerCase().includes(needle)) &&
+        (cat === "All" || d.category === cat) &&
+        (tld === "all" || d.tld === tld) &&
+        (signal === "all" || d.signal === signal),
+    );
+    list = [...list];
+    if (sort === "score") list.sort((a, b) => b.score - a.score);
+    if (sort === "roi") list.sort((a, b) => scanRoi(b) - scanRoi(a));
+    if (sort === "price") list.sort((a, b) => a.price - b.price);
+    if (sort === "value") list.sort((a, b) => b.estHigh - a.estHigh);
+    return list;
+  }, [q, cat, tld, signal, sort]);
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+  const current = Math.min(page, pages - 1);
+  const rows = filtered.slice(current * PAGE, current * PAGE + PAGE);
+  const reset = <T,>(fn: (v: T) => void) => (v: T) => {
+    fn(v);
+    setPage(0);
+  };
+
+  return (
+    <Panel
+      title={`Scanned domain universe — ${filtered.length.toLocaleString("en-US")} of ${scannedDomains.length} domains`}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={q}
+            onChange={(e) => reset(setQ)(e.target.value)}
+            placeholder="Search domains…"
+            className="h-8 w-44"
+          />
+          <Select value={cat} onChange={(e) => reset(setCat)(e.target.value)} className="h-8">
+            {CATS.map((c) => (
+              <option key={c} value={c}>
+                {c === "All" ? "All categories" : c}
+              </option>
+            ))}
+          </Select>
+          <Select value={tld} onChange={(e) => reset(setTld)(e.target.value)} className="h-8">
+            <option value="all">All TLDs</option>
+            <option value=".com">.com</option>
+            <option value=".io">.io</option>
+            <option value=".ai">.ai</option>
+            <option value=".co">.co</option>
+          </Select>
+          <Select value={signal} onChange={(e) => reset(setSignal)(e.target.value)} className="h-8">
+            <option value="all">All signals</option>
+            <option value="Rising">Rising</option>
+            <option value="Stable">Stable</option>
+            <option value="Cooling">Cooling</option>
+          </Select>
+          <Select value={sort} onChange={(e) => reset(setSort)(e.target.value)} className="h-8">
+            <option value="score">Flip Score</option>
+            <option value="roi">Highest ROI</option>
+            <option value="price">Lowest price</option>
+            <option value="value">Highest est. value</option>
+          </Select>
+        </div>
+      }
+    >
+      <DataTable head={["Domain", "Category", "Price", "Est. Value", "ROI", "Flip Score", "Signal", "AI reasoning", ""]}>
+        {rows.map((d) => (
+          <Row key={d.domain}>
+            <Cell>
+              <Link to="/domain/$domain" params={{ domain: slugify(d.domain) }} className="font-medium hover:text-primary">
+                {d.domain}
+              </Link>
+            </Cell>
+            <Cell className="text-muted-foreground">{d.category}</Cell>
+            <Cell className="tabular">{money(d.price)}</Cell>
+            <Cell className="tabular text-muted-foreground">
+              {money(d.estLow)} – {money(d.estHigh)}
+            </Cell>
+            <Cell className="tabular text-success">+{scanRoi(d)}%</Cell>
+            <Cell>
+              <Score value={d.score} />
+            </Cell>
+            <Cell>
+              <Tag tone={d.signal === "Rising" ? "success" : d.signal === "Cooling" ? "danger" : "default"}>{d.signal}</Tag>
+            </Cell>
+            <Cell className="max-w-[260px] truncate text-xs text-muted-foreground">{d.reason}</Cell>
+            <Cell align="right">
+              <Btn size="sm" variant="primary">
+                Buy
+              </Btn>
+            </Cell>
+          </Row>
+        ))}
+      </DataTable>
+
+      <div className="flex items-center justify-between border-t border-border/60 px-5 py-3">
+        <p className="text-xs text-muted-foreground">
+          Page {current + 1} of {pages}
+        </p>
+        <div className="flex gap-2">
+          <Btn size="sm" onClick={() => setPage(Math.max(0, current - 1))}>
+            Previous
+          </Btn>
+          <Btn size="sm" onClick={() => setPage(Math.min(pages - 1, current + 1))}>
+            Next
+          </Btn>
+        </div>
+      </div>
+    </Panel>
   );
 }
