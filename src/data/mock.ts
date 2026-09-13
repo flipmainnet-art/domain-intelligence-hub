@@ -106,3 +106,76 @@ export const money = (n: number) =>
   `${n < 0 ? "-" : ""}$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 
 export const slugify = (domain: string) => domain.toLowerCase();
+
+/* ---------------------------------------------------------------
+   Scanned domain universe — deterministic demo dataset (500 names)
+   Used by the AI Insights page.
+---------------------------------------------------------------- */
+
+export type ScannedDomain = {
+  domain: string;
+  price: number;
+  estLow: number;
+  estHigh: number;
+  score: number;
+  category: string;
+  tld: string;
+  signal: "Rising" | "Stable" | "Cooling";
+  reason: string;
+};
+
+const HEADS = [
+  "Nova", "Orbit", "Vanta", "Cedar", "Pulse", "Harbor", "Quant", "Lumen", "North", "Kernel",
+  "Atlas", "Signal", "Bright", "Iron", "Solar", "Vector", "Ember", "Cobalt", "Juniper", "Aster",
+  "Halcyon", "Prime", "Summit", "Delta", "Onyx", "Zephyr", "Terra", "Lyra", "Helio", "Meridian",
+  "Copper", "Arbor", "Basalt", "Crest", "Drift", "Echo", "Flint", "Granite", "Haven", "Indigo",
+  "Kite", "Loom", "Mica", "Nimbus", "Opal", "Pioneer", "Quarry", "Ridge", "Slate", "Tundra",
+];
+const TAILS = [
+  "ledger", "flow", "base", "grid", "pay", "fold", "stack", "vault", "bay", "rail",
+  "crest", "labs", "works", "core", "mint", "loop", "wave", "forge", "port", "scale",
+  "sync", "hub", "byte", "link", "point", "frame", "edge", "path", "gate", "bloom",
+];
+const TLDS = [".com", ".com", ".com", ".io", ".ai", ".co"];
+const CATEGORIES = ["Fintech", "AI", "SaaS", "Infrastructure", "Data", "Technology", "Logistics", "Health", "Crypto", "Brandable"];
+const REASONS = [
+  "Two high-demand keywords with clean pronunciation",
+  "Short, trust-signal brandable in a premium category",
+  "Matches current dev-tool naming conventions",
+  "Comparable sales cluster 8-14x above ask",
+  "Keyword search volume rising quarter over quarter",
+  "Category scarcity — few clean alternatives left",
+  "Strong end-user buyer pool identified",
+  "Renewal-driven drop pricing below fair value",
+];
+
+function hash(n: number, salt: number) {
+  const x = Math.sin(n * 127.1 + salt * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+export const scannedDomains: ScannedDomain[] = Array.from({ length: 500 }, (_, i) => {
+  const head = HEADS[i % HEADS.length]!;
+  const tail = TAILS[(i * 7 + Math.floor(i / HEADS.length)) % TAILS.length]!;
+  const tld = TLDS[Math.floor(hash(i, 1) * TLDS.length)]!;
+  const score = 62 + Math.floor(hash(i, 2) * 37);
+  const price = Math.round(18 + hash(i, 3) * 480);
+  const mult = 6 + hash(i, 4) * 26 + (score - 62) * 0.4;
+  const estLow = Math.round(price * mult);
+  const estHigh = Math.round(estLow * (1.3 + hash(i, 5) * 1.1));
+  const sig = hash(i, 6);
+  return {
+    domain: `${head}${tail}${tld}`,
+    price,
+    estLow,
+    estHigh,
+    score,
+    category: CATEGORIES[Math.floor(hash(i, 7) * CATEGORIES.length)]!,
+    tld,
+    signal: sig > 0.62 ? "Rising" : sig > 0.2 ? "Stable" : "Cooling",
+    reason: REASONS[Math.floor(hash(i, 8) * REASONS.length)]!,
+  };
+});
+
+export const scanRoi = (d: ScannedDomain) =>
+  Math.round((((d.estLow + d.estHigh) / 2 - d.price) / d.price) * 100);

@@ -3,11 +3,7 @@ import { useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
   Compass,
-  Gavel,
   Globe,
-  Tag as TagIcon,
-  Inbox,
-  Star,
   Sparkles,
   Bot,
   BarChart3,
@@ -28,17 +24,11 @@ const groups: { label: string; items: Item[] }[] = [
     items: [
       { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/discover", label: "Discover", icon: Compass },
-      { to: "/auctions", label: "Auctions", icon: Gavel },
     ],
   },
   {
     label: "Portfolio",
-    items: [
-      { to: "/my-domains", label: "My Domains", icon: Globe },
-      { to: "/listings", label: "Listings", icon: TagIcon },
-      { to: "/offers", label: "Offers", icon: Inbox },
-      { to: "/watchlist", label: "Watchlist", icon: Star },
-    ],
+    items: [{ to: "/my-domains", label: "My Domains", icon: Globe }],
   },
   {
     label: "Intelligence",
