@@ -11,17 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as AuctionsRouteImport } from './routes/auctions'
 import { Route as AutopilotRouteImport } from './routes/autopilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as InsightsRouteImport } from './routes/insights'
-import { Route as ListingsRouteImport } from './routes/listings'
 import { Route as MyDomainsRouteImport } from './routes/my-domains'
-import { Route as OffersRouteImport } from './routes/offers'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as WalletRouteImport } from './routes/wallet'
-import { Route as WatchlistRouteImport } from './routes/watchlist'
 import { Route as DomainDomainRouteImport } from './routes/domain.$domain'
 
 const IndexRoute = IndexRouteImport.update({
@@ -32,11 +28,6 @@ const IndexRoute = IndexRouteImport.update({
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuctionsRoute = AuctionsRouteImport.update({
-  id: '/auctions',
-  path: '/auctions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutopilotRoute = AutopilotRouteImport.update({
@@ -54,19 +45,9 @@ const InsightsRoute = InsightsRouteImport.update({
   path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ListingsRoute = ListingsRouteImport.update({
-  id: '/listings',
-  path: '/listings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MyDomainsRoute = MyDomainsRouteImport.update({
   id: '/my-domains',
   path: '/my-domains',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OffersRoute = OffersRouteImport.update({
-  id: '/offers',
-  path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -84,11 +65,6 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WatchlistRoute = WatchlistRouteImport.update({
-  id: '/watchlist',
-  path: '/watchlist',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DomainDomainRoute = DomainDomainRouteImport.update({
   id: '/domain/$domain',
   path: '/domain/$domain',
@@ -98,50 +74,38 @@ const DomainDomainRoute = DomainDomainRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
   '/insights': typeof InsightsRoute
-  '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
-  '/offers': typeof OffersRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRoute
-  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
   '/insights': typeof InsightsRoute
-  '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
-  '/offers': typeof OffersRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRoute
-  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRoute
-  '/auctions': typeof AuctionsRoute
   '/autopilot': typeof AutopilotRoute
   '/discover': typeof DiscoverRoute
   '/insights': typeof InsightsRoute
-  '/listings': typeof ListingsRoute
   '/my-domains': typeof MyDomainsRoute
-  '/offers': typeof OffersRoute
   '/settings': typeof SettingsRoute
   '/transactions': typeof TransactionsRoute
   '/wallet': typeof WalletRoute
-  '/watchlist': typeof WatchlistRoute
   '/domain/$domain': typeof DomainDomainRoute
 }
 export interface FileRouteTypes {
@@ -149,66 +113,50 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
-    | '/auctions'
     | '/autopilot'
     | '/discover'
     | '/insights'
-    | '/listings'
     | '/my-domains'
-    | '/offers'
     | '/settings'
     | '/transactions'
     | '/wallet'
-    | '/watchlist'
     | '/domain/$domain'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/analytics'
-    | '/auctions'
     | '/autopilot'
     | '/discover'
     | '/insights'
-    | '/listings'
     | '/my-domains'
-    | '/offers'
     | '/settings'
     | '/transactions'
     | '/wallet'
-    | '/watchlist'
     | '/domain/$domain'
   id:
     | '__root__'
     | '/'
     | '/analytics'
-    | '/auctions'
     | '/autopilot'
     | '/discover'
     | '/insights'
-    | '/listings'
     | '/my-domains'
-    | '/offers'
     | '/settings'
     | '/transactions'
     | '/wallet'
-    | '/watchlist'
     | '/domain/$domain'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRoute
-  AuctionsRoute: typeof AuctionsRoute
   AutopilotRoute: typeof AutopilotRoute
   DiscoverRoute: typeof DiscoverRoute
   InsightsRoute: typeof InsightsRoute
-  ListingsRoute: typeof ListingsRoute
   MyDomainsRoute: typeof MyDomainsRoute
-  OffersRoute: typeof OffersRoute
   SettingsRoute: typeof SettingsRoute
   TransactionsRoute: typeof TransactionsRoute
   WalletRoute: typeof WalletRoute
-  WatchlistRoute: typeof WatchlistRoute
   DomainDomainRoute: typeof DomainDomainRoute
 }
 
@@ -226,13 +174,6 @@ declare module '@tanstack/react-router' {
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof AnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auctions': {
-      id: '/auctions'
-      path: '/auctions'
-      fullPath: '/auctions'
-      preLoaderRoute: typeof AuctionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/autopilot': {
@@ -256,25 +197,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/listings': {
-      id: '/listings'
-      path: '/listings'
-      fullPath: '/listings'
-      preLoaderRoute: typeof ListingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/my-domains': {
       id: '/my-domains'
       path: '/my-domains'
       fullPath: '/my-domains'
       preLoaderRoute: typeof MyDomainsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offers': {
-      id: '/offers'
-      path: '/offers'
-      fullPath: '/offers'
-      preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -298,13 +225,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/watchlist': {
-      id: '/watchlist'
-      path: '/watchlist'
-      fullPath: '/watchlist'
-      preLoaderRoute: typeof WatchlistRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/domain/$domain': {
       id: '/domain/$domain'
       path: '/domain/$domain'
@@ -318,17 +238,13 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRoute,
-  AuctionsRoute: AuctionsRoute,
   AutopilotRoute: AutopilotRoute,
   DiscoverRoute: DiscoverRoute,
   InsightsRoute: InsightsRoute,
-  ListingsRoute: ListingsRoute,
   MyDomainsRoute: MyDomainsRoute,
-  OffersRoute: OffersRoute,
   SettingsRoute: SettingsRoute,
   TransactionsRoute: TransactionsRoute,
   WalletRoute: WalletRoute,
-  WatchlistRoute: WatchlistRoute,
   DomainDomainRoute: DomainDomainRoute,
 }
 export const routeTree = rootRouteImport
