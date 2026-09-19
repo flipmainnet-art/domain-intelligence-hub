@@ -144,9 +144,27 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { session, loading } = useAuth();
+  const isAuthRoute = pathname.startsWith("/auth");
   const current =
     groups.flatMap((g) => g.items).find((i) => i.to !== "/" && pathname.startsWith(i.to))?.label ??
     "Dashboard";
+
+  useEffect(() => {
+    if (!loading && !session && !isAuthRoute) navigate({ to: "/auth", replace: true });
+  }, [loading, session, isAuthRoute, navigate]);
+
+  if (isAuthRoute) return <>{children}</>;
+
+  if (loading || !session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <span className="text-[13px] text-muted-foreground">Loading…</span>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
