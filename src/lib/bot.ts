@@ -557,5 +557,16 @@ export function useBot() {
     write({ ...cur, cashDelta: cur.cashDelta + delta });
   }, []);
 
-  return { state, snapshot: snapshot(state), start, pause, reset, toggle, adjustCash };
+  const signedIn = Boolean(session);
+  const effective: BotState = signedIn ? state : { ...EMPTY, running: false };
+
+  return {
+    state: effective,
+    snapshot: signedIn ? snapshot(state) : zeroSnapshot(),
+    start,
+    pause,
+    reset,
+    toggle,
+    adjustCash,
+  };
 }
