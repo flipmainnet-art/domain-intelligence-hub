@@ -1,5 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
   Compass,
@@ -12,9 +12,11 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBot } from "@/lib/bot";
+import { useAuth } from "@/lib/auth";
 
 type Item = { to: string; label: string; icon: React.ElementType };
 
@@ -71,6 +73,14 @@ function NavLink({ item, onNavigate }: { item: Item; onNavigate?: (() => void) |
 
 function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const { snapshot: bot } = useBot();
+  const { user, displayName, signOut } = useAuth();
+  const name = displayName || user?.email?.split("@")[0] || "Account";
+  const initials = name
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-14 items-center border-b border-sidebar-border px-5">
