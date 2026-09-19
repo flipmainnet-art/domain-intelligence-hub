@@ -96,12 +96,23 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
         <NavLink item={{ to: "/settings", label: "Settings", icon: Settings }} onNavigate={onNavigate} />
         <div className="mt-2 flex items-center gap-2.5 rounded-md px-2.5 py-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-secondary text-[11px] font-semibold">
-            AK
+            {initials}
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium">Adam Keller</span>
-            <span className="block truncate text-[11px] text-muted-foreground">Pro plan</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">{name}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">{user?.email ?? ""}</span>
           </span>
+          <button
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={async () => {
+              onNavigate?.();
+              await signOut();
+            }}
+            className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
