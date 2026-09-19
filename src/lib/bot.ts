@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
 
 /**
  * Flipmain autopilot simulation (DEMO DATA ONLY).
@@ -485,7 +486,36 @@ export function clockTime(at: number) {
 
 /* ---------------------------------------------------------------- hooks -- */
 
+/** Everything at zero — used before a user signs in. */
+export function zeroSnapshot(): BotSnapshot {
+  const emptySeries: SeriesPoint[] = [];
+  return {
+    running: false,
+    runtimeMs: 0,
+    balance: 0,
+    deployed: 0,
+    portfolioValue: 0,
+    unrealized: 0,
+    realized: 0,
+    roi: 0,
+    acquired: 0,
+    domains: 0,
+    positions: [],
+    open: [],
+    sold: [],
+    listed: [],
+    events: [],
+    scanned: 0,
+    series: emptySeries,
+    seriesFor: () => emptySeries,
+    cost: 0,
+    estValue: 0,
+    activity: [],
+  };
+}
+
 export function useBot() {
+  const { session } = useAuth();
   const [state, setState] = useState<BotState>({ ...EMPTY, running: false });
   const [, force] = useState(0);
 
@@ -527,5 +557,16 @@ export function useBot() {
     write({ ...cur, cashDelta: cur.cashDelta + delta });
   }, []);
 
-  return { state, snapshot: snapshot(state), start, pause, reset, toggle, adjustCash };
+  const signedIn = Boolean(session);
+  const effective: BotState = signedIn ? state : { ...EMPTY, running: false };
+
+  return {
+    state: effective,
+    snapshot: signedIn ? snapshot(state) : zeroSnapshot(),
+    start,
+    pause,
+    reset,
+    toggle,
+    adjustCash,
+  };
 }

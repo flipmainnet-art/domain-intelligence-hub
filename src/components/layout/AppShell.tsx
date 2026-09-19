@@ -1,5 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
   Compass,
@@ -12,9 +12,11 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBot } from "@/lib/bot";
+import { useAuth } from "@/lib/auth";
 
 type Item = { to: string; label: string; icon: React.ElementType };
 
@@ -71,6 +73,14 @@ function NavLink({ item, onNavigate }: { item: Item; onNavigate?: (() => void) |
 
 function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const { snapshot: bot } = useBot();
+  const { user, displayName, signOut } = useAuth();
+  const name = displayName || user?.email?.split("@")[0] || "Account";
+  const initials = name
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="flex h-14 items-center border-b border-sidebar-border px-5">
@@ -96,12 +106,23 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
         <NavLink item={{ to: "/settings", label: "Settings", icon: Settings }} onNavigate={onNavigate} />
         <div className="mt-2 flex items-center gap-2.5 rounded-md px-2.5 py-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-secondary text-[11px] font-semibold">
-            AK
+            {initials}
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium">Adam Keller</span>
-            <span className="block truncate text-[11px] text-muted-foreground">Pro plan</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">{name}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">{user?.email ?? ""}</span>
           </span>
+          <button
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={async () => {
+              onNavigate?.();
+              await signOut();
+            }}
+            className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -123,9 +144,27 @@ function SidebarContent({ onNavigate }: { onNavigate?: (() => void) | undefined 
 export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { session, loading } = useAuth();
+  const isAuthRoute = pathname.startsWith("/auth");
   const current =
     groups.flatMap((g) => g.items).find((i) => i.to !== "/" && pathname.startsWith(i.to))?.label ??
     "Dashboard";
+
+  useEffect(() => {
+    if (!loading && !session && !isAuthRoute) navigate({ to: "/auth", replace: true });
+  }, [loading, session, isAuthRoute, navigate]);
+
+  if (isAuthRoute) return <>{children}</>;
+
+  if (loading || !session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <span className="text-[13px] text-muted-foreground">Loading…</span>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
