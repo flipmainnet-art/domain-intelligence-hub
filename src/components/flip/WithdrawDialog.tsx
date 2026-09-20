@@ -138,7 +138,14 @@ export function WithdrawDialog({
               <Btn variant="secondary" onClick={() => close(false)}>
                 Cancel
               </Btn>
-              <Btn variant="primary" disabled={!canSubmit} onClick={() => setSubmitted(true)}>
+              <Btn
+                variant="primary"
+                disabled={!canSubmit}
+                onClick={() => {
+                  withdraw(numeric);
+                  setSubmitted(true);
+                }}
+              >
                 Withdraw
               </Btn>
             </div>
