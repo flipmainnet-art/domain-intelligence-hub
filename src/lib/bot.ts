@@ -2,48 +2,51 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 
 /**
- * Flipmain autopilot simulation (DEMO DATA ONLY).
+ * Flipmain autopilot engine (SIMULATED EXECUTION — no registrar or payment
+ * network is connected).
  *
- * The app ships with a realistic baseline portfolio. While the autopilot is
- * running, a deterministic event clock produces new scans, evaluations,
- * purchases, listings, offers and sales, and every figure on every page is a
- * pure function of accumulated runtime — so numbers stay internally
- * consistent and survive reloads.
- *
- * No real registrar, payment or financial system is connected.
+ * Every account starts completely empty: zero balance, zero portfolio, zero
+ * P&L, no trades and no history. Nothing is generated until the user funds the
+ * bot with a confirmed deposit. From that moment the deposited capital becomes
+ * the bot's operating balance and all activity is a pure function of how long
+ * the bot has been running, so figures stay internally consistent and survive
+ * reloads.
  */
 
-const KEY = "flipmain.bot.v3";
+const KEY = "flipmain.bot.v4";
 const EVENT = "flipmain:bot";
+
+export type Txn = {
+  id: string;
+  at: number;
+  kind: "Deposit" | "Withdrawal";
+  amount: number;
+  status: "Completed";
+};
 
 export type BotState = {
   running: boolean;
   startedAt: number | null;
   elapsedMs: number;
-  /** Simulated deposits / withdrawals made from the wallet screens. */
-  cashDelta: number;
+  txns: Txn[];
 };
 
-const EMPTY: BotState = { running: true, startedAt: null, elapsedMs: 0, cashDelta: 0 };
+const EMPTY: BotState = { running: false, startedAt: null, elapsedMs: 0, txns: [] };
 
 function read(): BotState {
-  if (typeof localStorage === "undefined") return { ...EMPTY, running: false };
+  if (typeof localStorage === "undefined") return { ...EMPTY };
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) {
-      const seeded: BotState = { running: true, startedAt: Date.now(), elapsedMs: 0, cashDelta: 0 };
-      localStorage.setItem(KEY, JSON.stringify(seeded));
-      return seeded;
-    }
+    if (!raw) return { ...EMPTY };
     const p = JSON.parse(raw) as Partial<BotState>;
     return {
       running: Boolean(p.running),
       startedAt: typeof p.startedAt === "number" ? p.startedAt : null,
       elapsedMs: typeof p.elapsedMs === "number" ? p.elapsedMs : 0,
-      cashDelta: typeof p.cashDelta === "number" ? p.cashDelta : 0,
+      txns: Array.isArray(p.txns) ? (p.txns as Txn[]) : [],
     };
   } catch {
-    return { ...EMPTY, running: false };
+    return { ...EMPTY };
   }
 }
 
@@ -70,14 +73,6 @@ function rnd(i: number, c: number) {
   return x - Math.floor(x);
 }
 
-function scaleTo(values: number[], target: number) {
-  const sum = values.reduce((s, v) => s + v, 0) || 1;
-  const out = values.map((v) => Math.max(1, Math.round((v * target) / sum)));
-  const drift = target - out.reduce((s, v) => s + v, 0);
-  if (out.length) out[out.length - 1] = Math.max(1, (out[out.length - 1] as number) + drift);
-  return out;
-}
-
 const HEADS = [
   "nova", "orbit", "quantum", "zen", "lumen", "atlas", "vault", "pulse", "cedar", "north",
   "bright", "kernel", "signal", "harbor", "meridian", "vertex", "aster", "cobalt", "onyx", "summit",
@@ -102,20 +97,9 @@ function categoryFor(i: number) {
   return CATEGORIES[Math.floor(rnd(i, 24) * CATEGORIES.length)] as string;
 }
 
-const DAY = 86_400_000;
-
-/* -------------------------------------------------------------- baseline -- */
-
-const BASE = {
-  held: 199,
-  sold: 33,
-  deployed: 21_117,
-  value: 55_914,
-  realized: 1_255,
-  balance: 28_420,
-  deposited: 50_000,
-  withdrawn: 1_718,
-};
+function roundPrice(n: number) {
+  return Math.max(29, Math.round(n / 10) * 10 - 1);
+}
 
 export type Position = {
   index: number;
@@ -123,9 +107,9 @@ export type Position = {
   category: string;
   cost: number;
   baseValue: number;
-  /** How long ago the domain was acquired, in ms. */
+  /** How long ago the domain was acquired, in ms of bot runtime. */
   ageMs: number;
-  /** Legacy runtime-relative timestamp (kept for older screens). */
+  /** Runtime timestamp of the acquisition. */
   atMs: number;
   soldAtMs: number | null;
   salePrice: number;
@@ -135,68 +119,13 @@ export type Position = {
   daysListed: number;
 };
 
-function roundPrice(n: number) {
-  return Math.max(99, Math.round(n / 50) * 50 - 1);
-}
-
-const baseHeld: Position[] = (() => {
-  const rawCost = Array.from({ length: BASE.held }, (_, i) => 60 + rnd(i, 1) * 420);
-  const costs = scaleTo(rawCost, BASE.deployed);
-  const rawVal = costs.map((c, i) => c * (2.2 + rnd(i, 2) * 5.5));
-  const vals = scaleTo(rawVal, BASE.value);
-  return Array.from({ length: BASE.held }, (_, i) => {
-    const listed = rnd(i, 4) < 0.42;
-    const est = vals[i] as number;
-    return {
-      index: i,
-      domain: domainName(i),
-      category: categoryFor(i),
-      cost: costs[i] as number,
-      baseValue: est,
-      ageMs: (0.6 + rnd(i, 5) * 74) * DAY,
-      atMs: 0,
-      soldAtMs: null,
-      salePrice: 0,
-      status: listed ? "Listed" : "Holding",
-      listPrice: listed ? roundPrice(est * (0.9 + rnd(i, 6) * 0.5)) : null,
-      offers: listed ? Math.floor(rnd(i, 7) * 3.4) : 0,
-      daysListed: listed ? 1 + Math.floor(rnd(i, 8) * 26) : 0,
-    } satisfies Position;
-  }).sort((a, b) => a.ageMs - b.ageMs);
-})();
-
-const baseSold: Position[] = (() => {
-  const n = BASE.sold;
-  const costs = Array.from({ length: n }, (_, i) => Math.round(80 + rnd(i + 900, 1) * 400));
-  const rawPnl = Array.from({ length: n }, (_, i) => (rnd(i + 900, 2) - 0.32) * 900);
-  const total = rawPnl.reduce((s, v) => s + v, 0) || 1;
-  const pnl = rawPnl.map((v) => Math.round((v * BASE.realized) / total));
-  const drift = BASE.realized - pnl.reduce((s, v) => s + v, 0);
-  if (pnl.length) pnl[n - 1] = (pnl[n - 1] as number) + drift;
-  return Array.from({ length: n }, (_, i) => {
-    const cost = costs[i] as number;
-    const age = (2 + rnd(i + 900, 5) * 70) * DAY;
-    return {
-      index: 1000 + i,
-      domain: domainName(i + 900),
-      category: categoryFor(i + 900),
-      cost,
-      baseValue: cost + Math.max(0, pnl[i] as number),
-      ageMs: age,
-      atMs: 0,
-      soldAtMs: age - DAY,
-      salePrice: Math.max(20, cost + (pnl[i] as number)),
-      status: "Sold",
-      listPrice: null,
-      offers: 0,
-      daysListed: 0,
-    } satisfies Position;
-  }).sort((a, b) => a.ageMs - b.ageMs);
-})();
-
 /* ----------------------------------------------------------- event clock -- */
 
+/** One engine tick every 45s of runtime. */
 const GAP = 45_000;
+/** Minimum holding period before the bot will exit a position. */
+const HOLD_MS = 9 * 60_000;
+const MAX_TICKS = 6_000;
 
 const CYCLE = [
   "scan", "found", "evaluate", "purchase", "list", "scan",
@@ -215,138 +144,182 @@ export type BotEvent = {
   at: number;
 };
 
-function eventKind(id: number) {
-  const idx = ((id % CYCLE.length) + CYCLE.length) % CYCLE.length;
-  return CYCLE[idx] as EventKind;
+function tickKind(id: number) {
+  return CYCLE[((id % CYCLE.length) + CYCLE.length) % CYCLE.length] as EventKind;
 }
-
-function purchaseCost(id: number) {
-  return Math.round(120 + rnd(id, 31) * 360);
-}
-
-function saleProceeds(id: number) {
-  return roundPrice(600 + rnd(id, 32) * 1500);
-}
-
-function buildEvent(id: number, now: number, tMs: number): BotEvent {
-  const kind = eventKind(id);
-  const ageMs = Math.max(0, tMs - id * GAP);
-  const at = now - ageMs;
-  const domain = domainName(id + 4000);
-  switch (kind) {
-    case "scan":
-      return {
-        id, kind, ageMs, at,
-        title: `Scanned ${(8_000 + Math.floor(rnd(id, 33) * 7_000)).toLocaleString()} domains`,
-        detail: "Market sweep completed",
-      };
-    case "found":
-      return {
-        id, kind, ageMs, at,
-        title: `Found ${8 + Math.floor(rnd(id, 34) * 42)} potential opportunities`,
-        detail: "Queued for valuation",
-      };
-    case "evaluate":
-      return {
-        id, kind, ageMs, at,
-        title: `Evaluating ${domain}`,
-        detail: rnd(id, 35) > 0.5 ? "Strong keyword demand detected" : "Comparable sales look favourable",
-      };
-    case "purchase": {
-      const amount = purchaseCost(id);
-      return {
-        id, kind, ageMs, at, amount,
-        title: `Purchased ${domain} for $${amount.toLocaleString()}`,
-        detail: `Flip score: ${82 + Math.floor(rnd(id, 36) * 15)}`,
-      };
-    }
-    case "list": {
-      const amount = roundPrice(700 + rnd(id, 37) * 1600);
-      return {
-        id, kind, ageMs, at, amount,
-        title: `Listed ${domain} for $${amount.toLocaleString()}`,
-        detail: "Published to marketplace network",
-      };
-    }
-    case "offer": {
-      const amount = roundPrice(400 + rnd(id, 38) * 1100);
-      return {
-        id, kind, ageMs, at, amount,
-        title: `Received offer on ${domain}`,
-        detail: `Buyer offered $${amount.toLocaleString()}`,
-      };
-    }
-    case "sale": {
-      const amount = saleProceeds(id);
-      return {
-        id, kind, ageMs, at, amount,
-        title: `Sold ${domain} for $${amount.toLocaleString()}`,
-        detail: "Proceeds credited to wallet",
-      };
-    }
-  }
-}
-
-/** Positions bought during this session. */
-function livePurchases(tMs: number): Position[] {
-  const last = Math.floor(tMs / GAP);
-  const out: Position[] = [];
-  for (let id = 0; id <= last; id++) {
-    if (eventKind(id) !== "purchase") continue;
-    const cost = purchaseCost(id);
-    const est = Math.round(cost * (3 + rnd(id, 41) * 6));
-    const listed = rnd(id, 42) < 0.5;
-    out.push({
-      index: 5000 + id,
-      domain: domainName(id + 4000),
-      category: categoryFor(id + 4000),
-      cost,
-      baseValue: est,
-      ageMs: Math.max(0, tMs - id * GAP),
-      atMs: id * GAP,
-      soldAtMs: null,
-      salePrice: 0,
-      status: listed ? "Listed" : "Holding",
-      listPrice: listed ? roundPrice(est * 1.05) : null,
-      offers: listed ? Math.floor(rnd(id, 43) * 2.6) : 0,
-      daysListed: 0,
-    });
-  }
-  return out;
-}
-
-/** Baseline positions the autopilot has exited during this session. */
-function liveSales(tMs: number) {
-  const last = Math.floor(tMs / GAP);
-  const taken = new Set<number>();
-  const out: { id: number; position: Position; proceeds: number }[] = [];
-  for (let id = 0; id <= last; id++) {
-    if (eventKind(id) !== "sale") continue;
-    let idx = (id * 37) % baseHeld.length;
-    while (taken.has(idx)) idx = (idx + 1) % baseHeld.length;
-    taken.add(idx);
-    const position = baseHeld[idx] as Position;
-    out.push({ id, position, proceeds: saleProceeds(id) });
-  }
-  return out;
-}
-
-/* -------------------------------------------------------------- snapshot -- */
 
 export type SeriesPoint = { t: string; value: number; cost: number };
 export type Range = "7D" | "30D" | "3M" | "1Y" | "ALL";
 
+type Sim = {
+  cash: number;
+  held: Position[];
+  sold: Position[];
+  events: BotEvent[];
+  realized: number;
+  wins: number;
+  losses: number;
+  timeline: { at: number; value: number; cost: number; equity: number }[];
+  scanned: number;
+};
+
+/** Replay the engine from t=0 to the current runtime with the funded capital. */
+function simulate(tMs: number, capital: number, now: number): Sim {
+  const sim: Sim = {
+    cash: capital,
+    held: [],
+    sold: [],
+    events: [],
+    realized: 0,
+    wins: 0,
+    losses: 0,
+    timeline: [],
+    scanned: 0,
+  };
+  if (capital <= 0) return sim;
+
+  const ticks = Math.min(MAX_TICKS, Math.floor(tMs / GAP));
+  const push = (e: Omit<BotEvent, "ageMs" | "at">, atRuntime: number) => {
+    const ageMs = Math.max(0, tMs - atRuntime);
+    sim.events.push({ ...e, ageMs, at: now - ageMs });
+  };
+
+  for (let id = 0; id <= ticks; id++) {
+    const at = id * GAP;
+    const kind = tickKind(id);
+    const domain = domainName(id + 4000);
+
+    if (kind === "scan") {
+      const n = 900 + Math.floor(rnd(id, 33) * 2_600);
+      sim.scanned += n;
+      push({ id, kind, title: `Scanned ${n.toLocaleString()} expiring domains`, detail: "Market sweep completed" }, at);
+    } else if (kind === "found") {
+      push({ id, kind, title: `Found ${2 + Math.floor(rnd(id, 34) * 9)} candidates worth valuing`, detail: "Queued for valuation" }, at);
+    } else if (kind === "evaluate") {
+      push({
+        id, kind,
+        title: `Evaluating ${domain}`,
+        detail: rnd(id, 35) > 0.5 ? "Strong keyword demand detected" : "Comparable sales look favourable",
+      }, at);
+    } else if (kind === "purchase") {
+      const budget = Math.min(capital * 0.12, sim.cash * 0.35, 500);
+      const cost = Math.round(Math.max(12, budget * (0.45 + rnd(id, 31) * 0.55)));
+      if (cost > 0 && sim.cash >= cost) {
+        sim.cash -= cost;
+        const est = Math.round(cost * (1.35 + rnd(id, 41) * 1.6));
+        sim.held.push({
+          index: id,
+          domain,
+          category: categoryFor(id + 4000),
+          cost,
+          baseValue: est,
+          ageMs: Math.max(0, tMs - at),
+          atMs: at,
+          soldAtMs: null,
+          salePrice: 0,
+          status: "Holding",
+          listPrice: null,
+          offers: 0,
+          daysListed: 0,
+        });
+        push({
+          id, kind, amount: cost,
+          title: `Purchased ${domain} for $${cost.toLocaleString()}`,
+          detail: `Flip score: ${80 + Math.floor(rnd(id, 36) * 16)}`,
+        }, at);
+      } else {
+        push({ id, kind: "scan", title: "Skipped acquisition — insufficient available capital", detail: "Waiting for a sale or deposit" }, at);
+      }
+    } else if (kind === "list") {
+      const target = sim.held.find((p) => p.status === "Holding" && at - p.atMs >= GAP);
+      if (target) {
+        target.status = "Listed";
+        target.listPrice = roundPrice(target.baseValue * (0.95 + rnd(id, 37) * 0.35));
+        push({
+          id, kind, amount: target.listPrice,
+          title: `Listed ${target.domain} for $${target.listPrice.toLocaleString()}`,
+          detail: "Published to marketplace network",
+        }, at);
+      }
+    } else if (kind === "offer") {
+      const target = sim.held.find((p) => p.status === "Listed");
+      if (target) {
+        target.offers += 1;
+        const amount = roundPrice((target.listPrice ?? target.baseValue) * (0.55 + rnd(id, 38) * 0.4));
+        push({
+          id, kind, amount,
+          title: `Received offer on ${target.domain}`,
+          detail: `Buyer offered $${amount.toLocaleString()}`,
+        }, at);
+      }
+    } else if (kind === "sale") {
+      const idx = sim.held.findIndex((p) => at - p.atMs >= HOLD_MS);
+      if (idx >= 0) {
+        const pos = sim.held.splice(idx, 1)[0] as Position;
+        const win = rnd(id, 39) > 0.34;
+        const mult = win ? 1.15 + rnd(id, 40) * 1.2 : 0.4 + rnd(id, 40) * 0.5;
+        const proceeds = Math.max(5, Math.round(pos.cost * mult));
+        const pnl = proceeds - pos.cost;
+        sim.cash += proceeds;
+        sim.realized += pnl;
+        if (pnl >= 0) sim.wins += 1;
+        else sim.losses += 1;
+        sim.sold.push({
+          ...pos,
+          status: "Sold",
+          salePrice: proceeds,
+          soldAtMs: at,
+          ageMs: Math.max(0, tMs - at),
+        });
+        push({
+          id, kind, amount: proceeds,
+          title: `Sold ${pos.domain} for $${proceeds.toLocaleString()} (${pnl >= 0 ? "+" : "−"}$${Math.abs(pnl).toLocaleString()})`,
+          detail: "Proceeds credited to the bot wallet",
+        }, at);
+      }
+    }
+
+    // Sample the equity curve every few ticks.
+    if (id % 3 === 0 || id === ticks) {
+      const cost = sim.held.reduce((s, p) => s + p.cost, 0);
+      const value = sim.held.reduce((s, p) => s + p.baseValue, 0);
+      sim.timeline.push({ at, value, cost, equity: sim.cash + value });
+    }
+  }
+
+  // Age + light valuation drift on the open book.
+  for (const p of sim.held) {
+    p.ageMs = Math.max(0, tMs - p.atMs);
+    const drift = 1 + Math.min(0.18, (p.ageMs / 60_000) * 0.004) * (0.4 + rnd(p.index, 44));
+    p.baseValue = Math.round(p.baseValue * drift);
+    p.daysListed = p.status === "Listed" ? Math.max(0, Math.floor(p.ageMs / 60_000)) : 0;
+  }
+  sim.events.reverse();
+  return sim;
+}
+
+/* -------------------------------------------------------------- snapshot -- */
+
 export type BotSnapshot = {
   running: boolean;
+  funded: boolean;
   runtimeMs: number;
   /** Available USDC. Never negative. */
   balance: number;
+  deposited: number;
+  withdrawn: number;
   /** Capital currently locked in domains. */
   deployed: number;
   portfolioValue: number;
+  /** Cash + estimated value of open positions. */
+  equity: number;
   unrealized: number;
   realized: number;
+  todayPnl: number;
   roi: number;
+  trades: number;
+  wins: number;
+  losses: number;
   acquired: number;
   domains: number;
   positions: Position[];
@@ -354,6 +327,7 @@ export type BotSnapshot = {
   sold: Position[];
   listed: Position[];
   events: BotEvent[];
+  transactions: Txn[];
   scanned: number;
   series: SeriesPoint[];
   seriesFor: (range: Range) => SeriesPoint[];
@@ -363,101 +337,101 @@ export type BotSnapshot = {
   activity: { text: string; atMs: number; kind: "buy" | "sale" | "scan" | "list" }[];
 };
 
-const RANGES: Record<Range, { points: number; label: (i: number, n: number) => string; span: number }> = {
-  "7D": { points: 7, label: (i, n) => `D${i - n + 1 === 0 ? "0" : i - n + 1}`, span: 7 },
-  "30D": { points: 15, label: (i, n) => `${(n - 1 - i) * 2}d`, span: 30 },
-  "3M": { points: 12, label: (i, n) => `W${i - n + 1}`, span: 90 },
-  "1Y": { points: 12, label: (i, n) => `M${i - n + 1}`, span: 365 },
-  ALL: { points: 14, label: (i, n) => `P${i + 1}/${n}`, span: 540 },
+const RANGE_SPAN: Record<Range, number> = {
+  "7D": 0.15,
+  "30D": 0.35,
+  "3M": 0.6,
+  "1Y": 0.85,
+  ALL: 1,
 };
 
-function makeSeries(range: Range, value: number, cost: number): SeriesPoint[] {
-  const cfg = RANGES[range];
-  const n = cfg.points;
-  // Older ranges start further back, so the curve steepness feels believable.
-  const startFactor = range === "7D" ? 0.94 : range === "30D" ? 0.78 : range === "3M" ? 0.52 : range === "1Y" ? 0.18 : 0.06;
+function buildSeries(sim: Sim, tMs: number, range: Range): SeriesPoint[] {
+  if (sim.timeline.length === 0) return [];
+  const from = tMs * (1 - RANGE_SPAN[range]);
+  const pts = sim.timeline.filter((p) => p.at >= from);
+  const source = pts.length >= 2 ? pts : sim.timeline;
+  const max = 40;
+  const step = Math.max(1, Math.ceil(source.length / max));
   const out: SeriesPoint[] = [];
-  for (let i = 0; i < n; i++) {
-    const p = i / (n - 1);
-    const base = startFactor + (1 - startFactor) * Math.pow(p, 1.08);
-    const noise = 1 + (rnd(i + cfg.span, 51) - 0.5) * (range === "7D" ? 0.018 : 0.05) * (1 - p * 0.55);
-    const costBase = startFactor + (1 - startFactor) * Math.pow(p, 0.95);
-    out.push({
-      t: cfg.label(i, n),
-      value: Math.round(value * base * (i === n - 1 ? 1 : noise)),
-      cost: Math.round(cost * costBase),
-    });
+  for (let i = 0; i < source.length; i += step) {
+    const p = source[i]!;
+    out.push({ t: shortRuntime(p.at), value: Math.round(p.equity), cost: Math.round(p.cost) });
+  }
+  const last = source[source.length - 1]!;
+  const tail = out[out.length - 1];
+  if (!tail || tail.t !== shortRuntime(last.at)) {
+    out.push({ t: shortRuntime(last.at), value: Math.round(last.equity), cost: Math.round(last.cost) });
   }
   return out;
+}
+
+function shortRuntime(ms: number) {
+  const m = Math.floor(ms / 60_000);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h${String(m % 60).padStart(2, "0")}`;
 }
 
 export function snapshot(state: BotState): BotSnapshot {
   const t = runtimeMs(state);
   const now = Date.now();
 
-  const bought = livePurchases(t);
-  const sales = liveSales(t);
-  const soldIdx = new Set(sales.map((s) => s.position.index));
+  const deposited = state.txns.filter((x) => x.kind === "Deposit").reduce((s, x) => s + x.amount, 0);
+  const withdrawn = state.txns.filter((x) => x.kind === "Withdrawal").reduce((s, x) => s + x.amount, 0);
+  const capital = Math.max(0, deposited - withdrawn);
 
-  const heldBase = baseHeld.filter((p) => !soldIdx.has(p.index));
-  const soldLive: Position[] = sales.map((s) => ({
-    ...s.position,
-    status: "Sold",
-    salePrice: s.proceeds,
-    soldAtMs: Math.max(0, t - s.id * GAP),
-    ageMs: Math.max(0, t - s.id * GAP),
-  }));
+  const sim = simulate(t, capital, now);
 
-  const held = [...bought, ...heldBase].sort((a, b) => a.ageMs - b.ageMs);
-  const sold = [...soldLive, ...baseSold].sort((a, b) => a.ageMs - b.ageMs);
-
-  // Slow, noisy appreciation on the open book while the bot runs.
-  const appreciation = 1 + Math.min(0.06, (t / 1000) * 0.0000075);
-  const deployed = held.reduce((s, p) => s + p.cost, 0);
-  const portfolioValue = Math.round(held.reduce((s, p) => s + p.baseValue, 0) * appreciation);
-
-  const realized =
-    BASE.realized + sales.reduce((s, x) => s + (x.proceeds - x.position.cost), 0);
-  const spent = bought.reduce((s, p) => s + p.cost, 0);
-  const proceeds = sales.reduce((s, x) => s + x.proceeds, 0);
-  const balance = Math.max(0, Math.round(BASE.balance - spent + proceeds + state.cashDelta));
-
-  const events: BotEvent[] = [];
-  const newest = Math.floor(t / GAP);
-  for (let i = 0; i < 60; i++) events.push(buildEvent(newest - i, now, t));
-
+  const deployed = sim.held.reduce((s, p) => s + p.cost, 0);
+  const portfolioValue = sim.held.reduce((s, p) => s + p.baseValue, 0);
+  const balance = Math.max(0, Math.round(sim.cash));
   const unrealized = portfolioValue - deployed;
+  const equity = balance + portfolioValue;
+
+  const dayAgo = Math.max(0, t - 86_400_000);
+  const past = [...sim.timeline].reverse().find((p) => p.at <= dayAgo);
+  const todayPnl = past ? Math.round(equity - (past.equity + 0)) : Math.round(equity - capital);
+
+  const sold = [...sim.sold].sort((a, b) => (b.soldAtMs ?? 0) - (a.soldAtMs ?? 0));
+  const held = [...sim.held].sort((a, b) => b.atMs - a.atMs);
 
   return {
     running: state.running,
+    funded: capital > 0,
     runtimeMs: t,
     balance,
+    deposited,
+    withdrawn,
     deployed,
     portfolioValue,
+    equity,
     unrealized,
-    realized,
+    realized: sim.realized,
+    todayPnl,
     roi: deployed > 0 ? Math.round((unrealized / deployed) * 1000) / 10 : 0,
-    acquired: held.length,
+    trades: sold.length,
+    wins: sim.wins,
+    losses: sim.losses,
+    acquired: held.length + sold.length,
     domains: held.length,
     positions: held,
     open: held.filter((p) => p.status === "Holding"),
     listed: held.filter((p) => p.status === "Listed"),
     sold,
-    events,
-    scanned: 12_482 + Math.floor(t / 1000) * 9,
-    series: makeSeries("30D", portfolioValue, deployed),
-    seriesFor: (range: Range) => makeSeries(range, portfolioValue, deployed),
+    events: sim.events.slice(0, 80),
+    transactions: [...state.txns].sort((a, b) => b.at - a.at),
+    scanned: sim.scanned,
+    series: buildSeries(sim, t, "ALL"),
+    seriesFor: (range: Range) => buildSeries(sim, t, range),
     cost: deployed,
     estValue: portfolioValue,
-    activity: events.slice(0, 8).map((e) => ({
+    activity: sim.events.slice(0, 8).map((e) => ({
       text: e.title,
       atMs: e.at,
       kind: e.kind === "purchase" ? "buy" : e.kind === "sale" ? "sale" : e.kind === "list" ? "list" : "scan",
     })),
   };
 }
-
-export const BASELINE = BASE;
 
 /* -------------------------------------------------------------- format -- */
 
@@ -488,16 +462,23 @@ export function clockTime(at: number) {
 
 /** Everything at zero — used before a user signs in. */
 export function zeroSnapshot(): BotSnapshot {
-  const emptySeries: SeriesPoint[] = [];
   return {
     running: false,
+    funded: false,
     runtimeMs: 0,
     balance: 0,
+    deposited: 0,
+    withdrawn: 0,
     deployed: 0,
     portfolioValue: 0,
+    equity: 0,
     unrealized: 0,
     realized: 0,
+    todayPnl: 0,
     roi: 0,
+    trades: 0,
+    wins: 0,
+    losses: 0,
     acquired: 0,
     domains: 0,
     positions: [],
@@ -505,9 +486,10 @@ export function zeroSnapshot(): BotSnapshot {
     sold: [],
     listed: [],
     events: [],
+    transactions: [],
     scanned: 0,
-    series: emptySeries,
-    seriesFor: () => emptySeries,
+    series: [],
+    seriesFor: () => [],
     cost: 0,
     estValue: 0,
     activity: [],
@@ -516,7 +498,7 @@ export function zeroSnapshot(): BotSnapshot {
 
 export function useBot() {
   const { session } = useAuth();
-  const [state, setState] = useState<BotState>({ ...EMPTY, running: false });
+  const [state, setState] = useState<BotState>(EMPTY);
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -548,17 +530,28 @@ export function useBot() {
     write({ ...cur, running: false, startedAt: null, elapsedMs: runtimeMs(cur) });
   }, []);
 
-  const reset = useCallback(() => write({ running: false, startedAt: null, elapsedMs: 0, cashDelta: 0 }), []);
+  const reset = useCallback(() => write({ ...EMPTY }), []);
 
   const toggle = useCallback((on: boolean) => (on ? start() : pause()), [start, pause]);
 
-  const adjustCash = useCallback((delta: number) => {
+  /** Credit a confirmed deposit or record a withdrawal. */
+  const recordTxn = useCallback((kind: Txn["kind"], amount: number) => {
     const cur = read();
-    write({ ...cur, cashDelta: cur.cashDelta + delta });
+    const txn: Txn = {
+      id: `${kind === "Deposit" ? "DEP" : "WDL"}-${Date.now().toString(36).toUpperCase()}`,
+      at: Date.now(),
+      kind,
+      amount: Math.round(amount),
+      status: "Completed",
+    };
+    write({ ...cur, txns: [...cur.txns, txn] });
   }, []);
 
+  const deposit = useCallback((amount: number) => recordTxn("Deposit", amount), [recordTxn]);
+  const withdraw = useCallback((amount: number) => recordTxn("Withdrawal", amount), [recordTxn]);
+
   const signedIn = Boolean(session);
-  const effective: BotState = signedIn ? state : { ...EMPTY, running: false };
+  const effective: BotState = signedIn ? state : { ...EMPTY };
 
   return {
     state: effective,
@@ -567,6 +560,9 @@ export function useBot() {
     pause,
     reset,
     toggle,
-    adjustCash,
+    deposit,
+    withdraw,
+    /** Legacy alias: positive credits, negative debits. */
+    adjustCash: (delta: number) => (delta >= 0 ? deposit(delta) : withdraw(-delta)),
   };
 }
