@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useBot } from "@/lib/bot";
 
 export function WithdrawDialog({
   open,
@@ -20,6 +21,7 @@ export function WithdrawDialog({
   onOpenChange: (v: boolean) => void;
   available?: number;
 }) {
+  const { withdraw } = useBot();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [asset, setAsset] = useState<"USDC" | "SOL">("USDC");

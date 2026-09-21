@@ -9,19 +9,28 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowUpRight, Bell, Pause, Play, Radar, Tag as TagIcon, ShoppingCart } from "lucide-react";
-import { Btn, Cell, DataTable, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
+import {
+  ArrowUpRight,
+  Bell,
+  Pause,
+  Play,
+  Radar,
+  Tag as TagIcon,
+  ShoppingCart,
+  Wallet,
+} from "lucide-react";
+import { Btn, Cell, DataTable, Metric, PageHeader, Panel, Row, Score, Tag } from "@/components/flip/kit";
 import { DepositDialog } from "@/components/flip/DepositDialog";
 import { WithdrawDialog } from "@/components/flip/WithdrawDialog";
-import { EditableMetric, EditableSeries, EditableText } from "@/components/flip/customizable";
+import { EditableMetric } from "@/components/flip/customizable";
 import { money, opportunities } from "@/data/mock";
-import { formatRuntime, useBot } from "@/lib/bot";
+import { timeAgo, useBot, type Range } from "@/lib/bot";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — Flipmain" },
-      { name: "description", content: "Your domain portfolio at a glance: value, profit and AI-ranked opportunities." },
+      { name: "description", content: "Your domain portfolio at a glance: balance, positions, P&L and AI-ranked opportunities." },
       { property: "og:title", content: "Dashboard — Flipmain" },
       { property: "og:description", content: "Your domain portfolio at a glance." },
     ],
@@ -29,69 +38,61 @@ export const Route = createFileRoute("/")({
   component: Dashboard,
 });
 
-const ranges = ["7D", "30D", "3M", "1Y", "ALL"];
+const ranges: Range[] = ["7D", "30D", "3M", "1Y", "ALL"];
 
 const icons = {
-  buy: ShoppingCart,
+  purchase: ShoppingCart,
   sale: TagIcon,
-  alert: Bell,
+  offer: Bell,
   scan: Radar,
+  found: Radar,
+  evaluate: Radar,
   list: TagIcon,
 };
 
-function ago(atMs: number, nowMs: number) {
-  const s = Math.max(0, Math.round((nowMs - atMs) / 1000));
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  return `${Math.floor(m / 60)}h ${m % 60}m ago`;
-}
-
 function Dashboard() {
-  const [range, setRange] = useState("3M");
+  const [range, setRange] = useState<Range>("ALL");
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const { snapshot: bot, state, start, pause } = useBot();
+  const { snapshot: bot, start, pause } = useBot();
   const top = opportunities.slice(0, 5);
 
-  const balance = bot.balance;
+  const series = bot.seriesFor(range);
+  const totalPnl = bot.realized + bot.unrealized;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Good morning"
         subtitle={
-          bot.running
-            ? `Autopilot running · ${formatRuntime(bot.runtimeMs)} · ${bot.scanned.toLocaleString()} domains scanned`
-            : "Autopilot is idle. Start the bot to begin scanning and acquiring."
+          !bot.funded
+            ? "Your account is empty. Add funds to give the bot operating capital."
+            : bot.running
+              ? `Autopilot running · ${bot.scanned.toLocaleString()} domains scanned`
+              : "Autopilot is idle. Start the bot to begin scanning and acquiring."
         }
         right={
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-4 rounded-md border border-border bg-card px-4 py-2.5">
               <div>
                 <p className="label-xs">USDC Balance</p>
-                <p className="text-lg font-semibold tabular">
-                  <EditableText
-                    id="dashboard.balance"
-                    initial={money(Math.round(balance))}
-                    title="Edit USDC balance"
-                  />
-                </p>
+                <p className="text-lg font-semibold tabular">{money(bot.balance)}</p>
               </div>
               <Btn variant="primary" onClick={() => setDepositOpen(true)}>
                 Deposit
               </Btn>
-              <Btn variant="secondary" onClick={() => setWithdrawOpen(true)}>
+              <Btn variant="secondary" disabled={bot.balance <= 0} onClick={() => setWithdrawOpen(true)}>
                 Withdraw
               </Btn>
             </div>
             <Btn
               variant={bot.running ? "secondary" : "primary"}
+              disabled={!bot.funded}
               onClick={() => (bot.running ? pause() : start())}
             >
               {bot.running ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <Pause className="h-3.5 w-3.5" /> Pause bot
+                  <Pause className="h-3.5 w-3.5" /> Stop bot
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5">
@@ -107,35 +108,62 @@ function Dashboard() {
       <WithdrawDialog
         open={withdrawOpen}
         onOpenChange={setWithdrawOpen}
-        available={Math.max(0, Math.round(balance))}
+        available={bot.balance}
       />
+
+      {!bot.funded ? (
+        <div className="flex flex-col gap-4 rounded-md border border-primary/25 bg-card px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <Wallet className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[15px] font-semibold text-foreground">Add Funds to Operate Bot</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                Deposit USDC or SOL on Solana. Your deposit becomes the bot portfolio it trades with.
+              </p>
+            </div>
+          </div>
+          <Btn variant="primary" onClick={() => setDepositOpen(true)}>
+            Add funds
+          </Btn>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <EditableMetric
-          id="dashboard.cost"
-          label="Portfolio Cost"
-          value={money(bot.cost)}
-          delta={`${bot.positions.length} acquisitions`}
+          id="dashboard.balance"
+          label="Available balance"
+          value={money(bot.balance)}
+          delta={bot.funded ? `${money(bot.deposited)} deposited` : "No deposits yet"}
         />
         <EditableMetric
-          id="dashboard.estvalue"
-          label="Estimated Value"
-          value={money(bot.estValue)}
-          delta={bot.realized ? `${money(bot.realized)} realised` : "No sales yet"}
+          id="dashboard.portfolio"
+          label="Portfolio value"
+          value={money(bot.portfolioValue)}
+          delta={`${bot.domains} open position${bot.domains === 1 ? "" : "s"}`}
         />
         <EditableMetric
-          id="dashboard.profit"
-          label="Unrealized Profit"
-          value={`${bot.unrealized >= 0 ? "+" : ""}${money(bot.unrealized)}`}
-          tone={bot.unrealized > 0 ? "success" : "default"}
-          delta={`${bot.roi}% return`}
+          id="dashboard.pnl"
+          label="Total P&L"
+          value={`${totalPnl > 0 ? "+" : ""}${money(totalPnl)}`}
+          tone={totalPnl > 0 ? "success" : "default"}
+          delta={`${money(bot.realized)} realized`}
         />
         <EditableMetric
-          id="dashboard.domains"
-          label="Domains"
-          value={String(bot.domains)}
-          delta={`${bot.sold.length} sold`}
+          id="dashboard.todaypnl"
+          label="Today's P&L"
+          value={`${bot.todayPnl > 0 ? "+" : ""}${money(bot.todayPnl)}`}
+          tone={bot.todayPnl > 0 ? "success" : "default"}
+          delta={bot.deployed ? `${bot.roi}% unrealized return` : "No capital deployed"}
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Total trades" value={String(bot.trades)} />
+        <Metric label="Winning trades" value={String(bot.wins)} tone={bot.wins ? "success" : "default"} />
+        <Metric label="Losing trades" value={String(bot.losses)} />
+        <Metric label="Capital deployed" value={money(bot.deployed)} />
       </div>
 
       <Panel
@@ -158,64 +186,73 @@ function Dashboard() {
           </div>
         }
       >
-        <EditableSeries id="dashboard.perf" initial={bot.series}>
-          {(series) => (
-            <div className="h-[300px] px-2 py-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="t"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    width={56}
-                    tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                    tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`)}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: "var(--border-strong)" }}
-                    contentStyle={{
-                      background: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 6,
-                      fontSize: 12,
-                    }}
-                    labelStyle={{ color: "var(--muted-foreground)" }}
-                    formatter={(v: number, n) => [money(v), n === "value" ? "Est. value" : "Cost basis"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--primary)"
-                    strokeWidth={1.75}
-                    fill="url(#pv)"
-                    isAnimationActive={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="cost"
-                    stroke="var(--muted-foreground)"
-                    strokeWidth={1}
-                    strokeDasharray="3 3"
-                    fill="none"
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </EditableSeries>
+        {series.length < 2 ? (
+          <div className="flex h-[260px] flex-col items-center justify-center gap-2 text-center">
+            <p className="text-[13px] text-muted-foreground">
+              No performance history yet.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {bot.funded
+                ? "Start the bot — the curve builds as positions are opened and closed."
+                : "Deposit funds and start the bot to begin tracking performance."}
+            </p>
+          </div>
+        ) : (
+          <div className="h-[300px] px-2 py-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={series} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="var(--border)" vertical={false} />
+                <XAxis
+                  dataKey="t"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={56}
+                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
+                  tickFormatter={(v) => (v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`)}
+                />
+                <Tooltip
+                  cursor={{ stroke: "var(--border-strong)" }}
+                  contentStyle={{
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 6,
+                    fontSize: 12,
+                  }}
+                  labelStyle={{ color: "var(--muted-foreground)" }}
+                  formatter={(v: number, n) => [money(v), n === "value" ? "Account equity" : "Cost basis"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="var(--primary)"
+                  strokeWidth={1.75}
+                  fill="url(#pv)"
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="var(--muted-foreground)"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  fill="none"
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </Panel>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -263,13 +300,22 @@ function Dashboard() {
           </DataTable>
         </Panel>
 
-        <Panel title="Recent Activity">
-          {bot.activity.length === 0 ? (
+        <Panel
+          title="AI Activity"
+          action={
+            <span className="text-xs text-muted-foreground">Live actions from your autopilot</span>
+          }
+        >
+          {bot.events.length === 0 ? (
             <div className="px-5 py-10 text-center">
               <p className="text-[13px] text-muted-foreground">
-                {state.running ? "Scanning the drop lists…" : "No activity yet."}
+                {!bot.funded
+                  ? "No activity yet. Add funds to start the bot."
+                  : bot.running
+                    ? "Scanning the drop lists…"
+                    : "No activity yet. Start the bot to begin."}
               </p>
-              {!state.running ? (
+              {bot.funded && !bot.running ? (
                 <Btn variant="primary" size="sm" className="mt-3" onClick={start}>
                   Start bot
                 </Btn>
@@ -277,14 +323,14 @@ function Dashboard() {
             </div>
           ) : (
             <ul className="divide-y divide-border/60">
-              {bot.activity.map((a) => {
+              {bot.events.slice(0, 8).map((a) => {
                 const Icon = icons[a.kind] ?? Radar;
                 return (
-                  <li key={`${a.kind}-${a.atMs}-${a.text}`} className="flex items-start gap-3 px-5 py-3.5">
+                  <li key={a.id} className="flex items-start gap-3 px-5 py-3.5">
                     <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     <div className="min-w-0">
-                      <p className="text-[13px] leading-5 text-foreground">{a.text}</p>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">{ago(a.atMs, bot.runtimeMs)}</p>
+                      <p className="text-[13px] leading-5 text-foreground">{a.title}</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">{timeAgo(a.ageMs)}</p>
                     </div>
                   </li>
                 );

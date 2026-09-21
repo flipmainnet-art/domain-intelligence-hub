@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Cell, DataTable, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
-import { money, walletTx } from "@/data/mock";
+import { money } from "@/data/mock";
+import { useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({
@@ -14,16 +15,33 @@ export const Route = createFileRoute("/transactions")({
   component: TransactionsPage,
 });
 
-const ledger = [
-  ...walletTx.map((t) => ({ ...t, ref: `TX-${t.date.replaceAll("-", "")}-${Math.abs(t.amount)}` })),
-  { date: "2026-07-22", type: "Domain purchase", amount: -61, status: "Completed", ref: "TX-20260722-61" },
-  { date: "2026-07-15", type: "Deposit", amount: 400, status: "Completed", ref: "TX-20260715-400" },
-  { date: "2026-07-02", type: "Domain purchase", amount: -29, status: "Completed", ref: "TX-20260702-29" },
-  { date: "2026-06-24", type: "Domain sale", amount: 1320, status: "Completed", ref: "TX-20260624-1320" },
-  { date: "2026-06-11", type: "Domain purchase", amount: -38, status: "Completed", ref: "TX-20260611-38" },
-];
+type Entry = { ref: string; at: number; type: string; amount: number };
 
 function TransactionsPage() {
+  const { snapshot: bot } = useBot();
+
+  const ledger: Entry[] = [
+    ...bot.transactions.map((t) => ({
+      ref: t.id,
+      at: t.at,
+      type: `${t.kind} · USDC`,
+      amount: t.kind === "Deposit" ? t.amount : -t.amount,
+    })),
+    ...bot.positions.map((p) => ({
+      ref: `BUY-${p.index}`,
+      at: p.atMs,
+      type: `Domain purchase · ${p.domain}`,
+      amount: -p.cost,
+    })),
+    ...bot.sold.flatMap((p) => [
+      { ref: `BUY-${p.index}`, at: p.atMs, type: `Domain purchase · ${p.domain}`, amount: -p.cost },
+      { ref: `SELL-${p.index}`, at: p.soldAtMs ?? 0, type: `Domain sale · ${p.domain}`, amount: p.salePrice },
+    ]),
+  ].sort((a, b) => b.at - a.at);
+
+  const stamp = (at: number) =>
+    at > 1_000_000_000_000 ? new Date(at).toLocaleString() : `+${Math.floor(at / 60_000)}m runtime`;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -31,21 +49,27 @@ function TransactionsPage() {
         subtitle="Complete ledger of account activity — deposits, purchases, sales and withdrawals."
       />
       <Panel title="All activity">
-        <DataTable head={["Reference", "Date", "Type", "Status", "Amount"]}>
-          {ledger.map((t) => (
-            <Row key={t.ref}>
-              <Cell className="font-mono text-xs text-muted-foreground">{t.ref}</Cell>
-              <Cell className="text-muted-foreground tabular">{t.date}</Cell>
-              <Cell>{t.type}</Cell>
-              <Cell>
-                <Tag tone={t.status === "Completed" ? "success" : "warning"}>{t.status}</Tag>
-              </Cell>
-              <Cell align="right" className={t.amount > 0 ? "text-success tabular" : "tabular"}>
-                {t.amount > 0 ? `+${money(t.amount)}` : money(t.amount)}
-              </Cell>
-            </Row>
-          ))}
-        </DataTable>
+        {ledger.length === 0 ? (
+          <p className="px-5 py-12 text-center text-[13px] text-muted-foreground">
+            No transactions yet. Deposit funds and start the bot to begin recording activity.
+          </p>
+        ) : (
+          <DataTable head={["Reference", "When", "Type", "Status", "Amount"]}>
+            {ledger.map((t, i) => (
+              <Row key={`${t.ref}-${i}`}>
+                <Cell className="font-mono text-xs text-muted-foreground">{t.ref}</Cell>
+                <Cell className="text-muted-foreground tabular">{stamp(t.at)}</Cell>
+                <Cell>{t.type}</Cell>
+                <Cell>
+                  <Tag tone="success">Completed</Tag>
+                </Cell>
+                <Cell align="right" className={t.amount > 0 ? "text-success tabular" : "tabular"}>
+                  {t.amount > 0 ? `+${money(t.amount)}` : money(t.amount)}
+                </Cell>
+              </Row>
+            ))}
+          </DataTable>
+        )}
       </Panel>
     </div>
   );
