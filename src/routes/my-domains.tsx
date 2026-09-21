@@ -25,17 +25,17 @@ function MyDomains() {
 
   const all = useMemo(
     () =>
-      bot.positions.map((p) => {
-        const sold = Boolean(p.soldAtMs && p.soldAtMs <= bot.runtimeMs);
+      [...bot.positions, ...bot.sold].map((p) => {
+        const sold = p.status === "Sold";
         return {
           domain: p.domain,
           acquired: formatRuntime(p.atMs),
           cost: p.cost,
           estValue: sold ? p.salePrice : Math.round(p.baseValue),
-          status: sold ? "Sold" : p.index % 3 === 0 ? "Listed" : "Owned",
+          status: sold ? "Sold" : p.status === "Listed" ? "Listed" : "Owned",
         };
       }),
-    [bot.positions, bot.runtimeMs],
+    [bot.positions, bot.sold],
   );
 
   const rows = all.filter((h) => status === "all" || h.status === status);
