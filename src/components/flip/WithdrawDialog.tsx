@@ -21,6 +21,7 @@ export function WithdrawDialog({
   onOpenChange: (v: boolean) => void;
   available?: number;
 }) {
+  const { withdraw } = useBot();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [asset, setAsset] = useState<"USDC" | "SOL">("USDC");
