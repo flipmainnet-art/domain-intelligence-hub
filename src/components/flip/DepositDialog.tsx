@@ -163,19 +163,20 @@ export function DepositDialog({
                   <div className="text-sm">
                     <p className="font-medium">Waiting for deposit</p>
                     <p className="text-warning/90">
-                      Monitoring the bot wallet for {money(Math.round(numeric))}.
+                      Verifying {money(Math.round(numeric))} on the Solana network.
                     </p>
                   </div>
                 </div>
-                <Btn size="sm" variant="primary" onClick={confirm}>
-                  Deposit received
-                </Btn>
+                <div className="text-right">
+                  <p className="label-xs">Crediting in</p>
+                  <p className="text-sm font-semibold tabular text-warning">{countdown}</p>
+                </div>
               </div>
             ) : (
               <Btn
                 variant="primary"
                 disabled={!validAmount}
-                onClick={() => setStage("waiting")}
+                onClick={confirm}
                 className="w-full justify-center"
               >
                 I have sent the funds
