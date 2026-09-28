@@ -66,10 +66,8 @@ function persistRemote(state: BotState) {
 /** Load the signed-in user's own account from the backend. */
 async function bindUser(uid: string | null) {
   currentUser = uid;
-  if (!uid) {
-    window.dispatchEvent(new CustomEvent(EVENT));
-    return;
-  }
+  window.dispatchEvent(new CustomEvent(EVENT));
+  if (!uid) return;
   const { data } = await supabase.from("bot_accounts").select("state").eq("user_id", uid).maybeSingle();
   if (currentUser !== uid) return;
   const state = data?.state ? sanitize(data.state as Partial<BotState>) : { ...EMPTY };

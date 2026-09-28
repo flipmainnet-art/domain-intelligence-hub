@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Btn, Cell, DataTable, Field, Input, Metric, PageHeader, Panel, Row, Select, Tag, Toggle } from "@/components/flip/kit";
 import { money } from "@/data/mock";
+import { DepositDialog } from "@/components/flip/DepositDialog";
 import { formatRuntime, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/autopilot")({
@@ -21,6 +22,7 @@ function Autopilot() {
   const [autoBid, setAutoBid] = useState(true);
   const [autoList, setAutoList] = useState(false);
   const [notify, setNotify] = useState(true);
+  const [depositOpen, setDepositOpen] = useState(false);
 
   const runs = bot.activity.map((a) => ({
     time: formatRuntime(a.atMs),
@@ -49,6 +51,17 @@ function Autopilot() {
           </div>
         }
       />
+
+      {!bot.funded ? (
+        <div className="flex flex-col gap-3 rounded-md border border-primary/25 bg-card px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[14px] font-semibold">Deposit funds to use the bot</p>
+            <p className="text-[13px] text-muted-foreground">Your balance is $0. The bot can only start once you've deposited funds into your bot portfolio.</p>
+          </div>
+          <Btn variant="primary" onClick={() => setDepositOpen(true)}>Deposit funds</Btn>
+        </div>
+      ) : null}
+      <DepositDialog open={depositOpen} onOpenChange={setDepositOpen} />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
