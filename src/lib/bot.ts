@@ -173,9 +173,9 @@ export type Position = {
 /* ----------------------------------------------------------- event clock -- */
 
 /** One engine tick every 45s of runtime. */
-const GAP = 45_000;
+const GAP = 15_000;
 /** Minimum holding period before the bot will exit a position. */
-const HOLD_MS = 9 * 60_000;
+const HOLD_MS = 4 * 60_000;
 const MAX_TICKS = 6_000;
 
 const CYCLE = [
@@ -308,8 +308,10 @@ function simulate(tMs: number, capital: number, now: number): Sim {
       if (idx >= 0) {
         const pos = sim.held.splice(idx, 1)[0] as Position;
         const win = rnd(id, 39) > 0.34;
-        const mult = win ? 1.15 + rnd(id, 40) * 1.2 : 0.4 + rnd(id, 40) * 0.5;
-        const proceeds = Math.max(5, Math.round(pos.cost * mult));
+        // Small, realistic per-trade outcomes: wins net ~$4–$13, losses give back ~$2–$10.
+        const proceeds = win
+          ? pos.cost + 4 + Math.round(rnd(id, 40) * 9)
+          : Math.max(5, pos.cost - (2 + Math.round(rnd(id, 40) * 8)));
         const pnl = proceeds - pos.cost;
         sim.cash += proceeds;
         sim.realized += pnl;
