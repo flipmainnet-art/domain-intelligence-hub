@@ -25,10 +25,11 @@ export function DepositDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { deposit } = useBot();
+  const { deposit, snapshot: bot } = useBot();
   const [amount, setAmount] = useState("");
   const [copied, setCopied] = useState(false);
   const [stage, setStage] = useState<Stage>("form");
+  const [remainingMs, setRemainingMs] = useState(0);
 
   useEffect(() => {
     if (!open) {
@@ -40,6 +41,22 @@ export function DepositDialog({
 
   const numeric = Number(amount);
   const validAmount = Number.isFinite(numeric) && numeric > 0;
+
+  // While waiting, watch the pending deposit and count down until it credits.
+  useEffect(() => {
+    if (stage !== "waiting") return;
+    const pending = bot.transactions.find(
+      (t) => t.kind === "Deposit" && t.status === "Pending" && t.amount === Math.round(numeric),
+    );
+    if (!pending) {
+      setStage("credited");
+      return;
+    }
+    const tick = () => setRemainingMs(Math.max(0, (pending.creditAt ?? 0) - Date.now()));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [stage, bot.transactions, numeric]);
 
   const copyAddress = async () => {
     try {
@@ -54,8 +71,12 @@ export function DepositDialog({
   const confirm = () => {
     if (!validAmount) return;
     deposit(numeric);
-    setStage("credited");
+    setStage("waiting");
   };
+
+  const countdown = `${Math.floor(remainingMs / 60_000)}:${String(
+    Math.floor((remainingMs % 60_000) / 1000),
+  ).padStart(2, "0")}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,19 +163,20 @@ export function DepositDialog({
                   <div className="text-sm">
                     <p className="font-medium">Waiting for deposit</p>
                     <p className="text-warning/90">
-                      Monitoring the bot wallet for {money(Math.round(numeric))}.
+                      Verifying {money(Math.round(numeric))} on the Solana network.
                     </p>
                   </div>
                 </div>
-                <Btn size="sm" variant="primary" onClick={confirm}>
-                  Deposit received
-                </Btn>
+                <div className="text-right">
+                  <p className="label-xs">Crediting in</p>
+                  <p className="text-sm font-semibold tabular text-warning">{countdown}</p>
+                </div>
               </div>
             ) : (
               <Btn
                 variant="primary"
                 disabled={!validAmount}
-                onClick={() => setStage("waiting")}
+                onClick={confirm}
                 className="w-full justify-center"
               >
                 I have sent the funds
