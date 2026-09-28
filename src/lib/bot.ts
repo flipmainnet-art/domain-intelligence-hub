@@ -284,23 +284,39 @@ function simulate(tMs: number, capital: number, now: number): Sim {
       }
     }
 
-    // Sample the equity curve every few ticks.
+    // Sample the equity curve every few ticks, anchored to the hourly growth target.
     if (id % 3 === 0 || id === ticks) {
       const cost = sim.held.reduce((s, p) => s + p.cost, 0);
       const value = sim.held.reduce((s, p) => s + p.baseValue, 0);
-      sim.timeline.push({ at, value, cost, equity: sim.cash + value });
+      const target = targetEquity(capital, at, id);
+      const adj = sim.held.length ? target - (sim.cash + value) : 0;
+      sim.timeline.push({ at, value: value + adj, cost, equity: sim.cash + value + adj });
     }
   }
 
-  // Age + light valuation drift on the open book.
+  // Age the open book, then mark it to the target equity curve (~33%/hour).
   for (const p of sim.held) {
     p.ageMs = Math.max(0, tMs - p.atMs);
-    const drift = 1 + Math.min(0.18, (p.ageMs / 60_000) * 0.004) * (0.4 + rnd(p.index, 44));
-    p.baseValue = Math.round(p.baseValue * drift);
     p.daysListed = p.status === "Listed" ? Math.max(0, Math.floor(p.ageMs / 60_000)) : 0;
+  }
+  const bookValue = sim.held.reduce((s, p) => s + p.baseValue, 0);
+  if (bookValue > 0) {
+    const target = targetEquity(capital, tMs, ticks + 1);
+    const wanted = Math.max(bookValue * 0.6, target - sim.cash);
+    const scale = wanted / bookValue;
+    for (const p of sim.held) p.baseValue = Math.max(1, Math.round(p.baseValue * scale));
   }
   sim.events.reverse();
   return sim;
+}
+
+/** Hourly growth rate of the bot portfolio (33% of capital per hour), with small natural wobble. */
+const HOURLY_RATE = 0.33;
+function targetEquity(capital: number, atMs: number, seed: number): number {
+  const hours = atMs / 3_600_000;
+  const wobble = 1 + (Math.sin(seed * 0.7) * 0.004 + (rnd(seed, 55) - 0.5) * 0.006) * Math.min(1, hours * 4);
+  return capital * (1 + HOURLY_RATE * hours) * wobble;
+
 }
 
 /* -------------------------------------------------------------- snapshot -- */

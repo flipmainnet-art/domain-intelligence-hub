@@ -38,8 +38,14 @@ function Autopilot() {
         subtitle="Let Flipmain execute your strategy while you sleep — within limits you define."
         right={
           <div className="flex items-center gap-3">
-            <Tag tone={bot.running ? "success" : "default"}>{bot.running ? "Active" : "Paused"}</Tag>
-            <Toggle on={bot.running} onChange={toggle} label="Autopilot enabled" />
+            <Tag tone={bot.running ? "success" : "default"}>{bot.running ? "Running" : "Stopped"}</Tag>
+            <Btn
+              variant={bot.running ? "secondary" : "primary"}
+              disabled={!bot.funded}
+              onClick={() => toggle(!bot.running)}
+            >
+              {bot.running ? "Stop bot" : "Start bot"}
+            </Btn>
           </div>
         }
       />
