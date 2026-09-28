@@ -544,14 +544,36 @@ export function useBot() {
   /** Credit a confirmed deposit or record a withdrawal. */
   const recordTxn = useCallback((kind: Txn["kind"], amount: number) => {
     const cur = read();
+    const now = Date.now();
     const txn: Txn = {
-      id: `${kind === "Deposit" ? "DEP" : "WDL"}-${Date.now().toString(36).toUpperCase()}`,
-      at: Date.now(),
+      id: `${kind === "Deposit" ? "DEP" : "WDL"}-${now.toString(36).toUpperCase()}`,
+      at: now,
       kind,
       amount: Math.round(amount),
-      status: "Completed",
+      status: kind === "Deposit" ? "Pending" : "Completed",
+      ...(kind === "Deposit" ? { creditAt: now + DEPOSIT_HOLD_MS } : {}),
     };
     write({ ...cur, txns: [...cur.txns, txn] });
+  }, []);
+
+  // Finalize pending deposits once their 5-minute hold elapses.
+  useEffect(() => {
+    const finalize = () => {
+      const cur = read();
+      const now = Date.now();
+      if (!cur.txns.some((x) => x.status === "Pending" && (x.creditAt ?? 0) <= now)) return;
+      write({
+        ...cur,
+        txns: cur.txns.map((x) =>
+          x.status === "Pending" && (x.creditAt ?? 0) <= now
+            ? { ...x, status: "Completed" as const }
+            : x,
+        ),
+      });
+    };
+    finalize();
+    const id = window.setInterval(finalize, 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   const deposit = useCallback((amount: number) => recordTxn("Deposit", amount), [recordTxn]);
