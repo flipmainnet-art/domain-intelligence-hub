@@ -81,6 +81,9 @@ function Autopilot() {
             <Field label="Monthly budget" hint="Autopilot pauses when the budget is exhausted.">
               <Input defaultValue="500" inputMode="numeric" />
             </Field>
+            <Field label="Daily budget" hint="Maximum the bot can spend on acquisitions per day. Resets at midnight.">
+              <Input defaultValue="50" inputMode="numeric" />
+            </Field>
             <Field label="Max price per domain">
               <Input defaultValue="150" inputMode="numeric" />
             </Field>
