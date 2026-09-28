@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Flipmain autopilot engine (SIMULATED EXECUTION — no registrar or payment
@@ -42,6 +43,7 @@ const EMPTY: BotState = { running: false, startedAt: null, elapsedMs: 0, txns: [
 let currentUser: string | null = null;
 const userKey = () => (currentUser ? `${KEY}:${currentUser}` : null);
 let saveTimer: number | undefined;
+let boundFor: string | null | undefined;
 
 function sanitize(p: Partial<BotState>): BotState {
   return {
@@ -569,6 +571,13 @@ export function useBot() {
   const { session } = useAuth();
   const [state, setState] = useState<BotState>(EMPTY);
   const [, force] = useState(0);
+  const uid = session?.user.id ?? null;
+
+  useEffect(() => {
+    if (boundFor === uid) return;
+    boundFor = uid;
+    void bindUser(uid);
+  }, [uid]);
 
   useEffect(() => {
     const sync = () => setState(read());
