@@ -27,7 +27,7 @@ function WalletPage() {
     ...bot.transactions.map((t) => ({
       at: t.at,
       type: `${t.kind} · USDC`,
-      amount: t.kind === "Deposit" ? t.amount : -t.amount,
+      amount: t.kind === "Withdrawal" ? -t.amount : t.amount,
     })),
     ...bot.positions.map((pos) => ({
       at: pos.atMs,

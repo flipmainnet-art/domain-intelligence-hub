@@ -25,7 +25,7 @@ function TransactionsPage() {
       ref: t.id,
       at: t.at,
       type: `${t.kind} · USDC`,
-      amount: t.kind === "Deposit" ? t.amount : -t.amount,
+      amount: t.kind === "Withdrawal" ? -t.amount : t.amount,
     })),
     ...bot.positions.map((p) => ({
       ref: `BUY-${p.index}`,

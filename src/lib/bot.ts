@@ -20,7 +20,7 @@ const EVENT = "flipmain:bot";
 export type Txn = {
   id: string;
   at: number;
-  kind: "Deposit" | "Withdrawal";
+  kind: "Deposit" | "Withdrawal" | "Bot profit";
   amount: number;
   status: "Completed" | "Pending";
   /** Epoch ms when a pending deposit is credited. */
@@ -447,7 +447,8 @@ export function snapshot(state: BotState): BotSnapshot {
     .filter((x) => x.kind === "Deposit" && x.status === "Completed")
     .reduce((s, x) => s + x.amount, 0);
   const withdrawn = state.txns.filter((x) => x.kind === "Withdrawal").reduce((s, x) => s + x.amount, 0);
-  const capital = Math.max(0, deposited - withdrawn);
+  const profits = state.txns.filter((x) => x.kind === "Bot profit").reduce((s, x) => s + x.amount, 0);
+  const capital = Math.max(0, deposited + profits - withdrawn);
 
   const sim = simulate(t, capital, now);
 
@@ -605,7 +606,16 @@ export function useBot() {
   const pause = useCallback(() => {
     const cur = read();
     if (!cur.running) return;
-    write({ ...cur, running: false, startedAt: null, elapsedMs: runtimeMs(cur) });
+    // Settle the session: close positions and credit the net result to the balance.
+    const s = snapshot(cur);
+    const capital = Math.max(0, s.deposited - s.withdrawn) +
+      cur.txns.filter((x) => x.kind === "Bot profit").reduce((a, x) => a + x.amount, 0);
+    const pnl = Math.round(s.equity - capital);
+    const now = Date.now();
+    const txns = pnl !== 0
+      ? [...cur.txns, { id: `PNL-${now.toString(36).toUpperCase()}`, at: now, kind: "Bot profit" as const, amount: pnl, status: "Completed" as const }]
+      : cur.txns;
+    write({ ...cur, running: false, startedAt: null, elapsedMs: 0, txns });
   }, []);
 
   const reset = useCallback(() => write({ ...EMPTY }), []);
