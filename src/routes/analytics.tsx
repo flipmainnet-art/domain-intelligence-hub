@@ -13,9 +13,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Metric, PageHeader, Panel } from "@/components/flip/kit";
+import { Cell, DataTable, Metric, PageHeader, Panel, Row, Tag } from "@/components/flip/kit";
 import { money } from "@/data/mock";
-import { useBot } from "@/lib/bot";
+import { formatRuntime, timeAgo, useBot } from "@/lib/bot";
 
 export const Route = createFileRoute("/analytics")({
   head: () => ({
@@ -44,6 +44,18 @@ function Analytics() {
   const cost = bot.cost;
   const value = bot.estValue;
 
+  const capital = Math.max(0, bot.deposited - bot.withdrawn);
+  const totalProfit = Math.round(bot.equity - capital);
+  const revenue = bot.sold.reduce((sum, p) => sum + (p.salePrice ?? 0), 0);
+  const roi = capital > 0 ? Math.round((totalProfit / capital) * 1000) / 10 : 0;
+  const trades = [
+    ...bot.positions.map((p) => ({ id: `BUY-${p.index}`, at: p.atMs, kind: "Purchase", domain: p.domain, amount: -p.cost })),
+    ...bot.sold.flatMap((p) => [
+      { id: `BUY-${p.index}`, at: p.atMs, kind: "Purchase", domain: p.domain, amount: -p.cost },
+      { id: `SELL-${p.index}`, at: p.soldAtMs ?? p.atMs, kind: "Sale", domain: p.domain, amount: p.salePrice ?? 0 },
+    ]),
+  ].sort((a, b) => b.at - a.at).slice(0, 15);
+
   const buckets = 6;
   const acquisitions = Array.from({ length: buckets }, (_, i) => {
     const from = (bot.runtimeMs * i) / buckets;
@@ -65,13 +77,29 @@ function Analytics() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Analytics" subtitle="How your portfolio is compounding over time." />
+      <PageHeader
+        title="Analytics"
+        subtitle={
+          !bot.funded
+            ? "Deposit funds and start the bot — analytics build from its live activity."
+            : bot.running
+              ? `Live · updating with bot activity · runtime ${formatRuntime(bot.runtimeMs)}`
+              : `Paused · bot stopped at ${formatRuntime(bot.runtimeMs)} runtime`
+        }
+        right={<Tag tone={bot.running ? "success" : "default"}>{bot.running ? "Live" : "Paused"}</Tag>}
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Portfolio value" value={money(value)} tone="primary" />
-        <Metric label="Invested" value={money(cost)} />
-        <Metric label="Net return" value={`${bot.roi}%`} tone="success" />
-        <Metric label="Realized P&L" value={money(bot.realized)} delta={`${bot.sold.length} domains sold`} />
+        <Metric label="Domains scanned" value={bot.scanned.toLocaleString()} />
+        <Metric label="Domains purchased" value={String(bot.acquired)} tone="primary" />
+        <Metric label="Domains sold" value={String(bot.sold.length)} delta={`${bot.wins} wins · ${bot.losses} losses`} />
+        <Metric label="Active trades" value={String(bot.domains)} delta={`${bot.listed.length} listed`} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric label="Total profit" value={`${totalProfit >= 0 ? "+" : ""}${money(totalProfit)}`} tone={totalProfit > 0 ? "success" : "default"} delta={`${money(bot.realized)} realized`} />
+        <Metric label="Revenue from sales" value={money(revenue)} />
+        <Metric label="ROI on capital" value={`${roi}%`} tone={roi > 0 ? "success" : "default"} />
+        <Metric label="Portfolio value" value={money(value)} delta={`${money(cost)} invested`} />
       </div>
 
       <Panel title="Portfolio value vs cost basis">
@@ -96,7 +124,7 @@ function Analytics() {
       </Panel>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Acquisitions per month">
+        <Panel title="Acquisitions over runtime">
           <div className="h-[260px] px-2 py-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={acquisitions} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
@@ -138,6 +166,23 @@ function Analytics() {
           </div>
         </Panel>
       </div>
+
+      <Panel title="Trade history" action={<span className="text-xs text-muted-foreground">{bot.running ? "Updating live" : "Paused"}</span>}>
+        {trades.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[13px] text-muted-foreground">No trades yet. Start the bot to begin recording activity.</p>
+        ) : (
+          <DataTable head={["When", "Type", "Domain", "Amount"]}>
+            {trades.map((t) => (
+              <Row key={t.id}>
+                <Cell className="tabular text-muted-foreground">{timeAgo(Math.max(0, bot.runtimeMs - t.at))}</Cell>
+                <Cell><Tag tone={t.kind === "Sale" ? "success" : "default"}>{t.kind}</Tag></Cell>
+                <Cell className="font-medium">{t.domain}</Cell>
+                <Cell align="right" className="tabular">{t.amount >= 0 ? "+" : "−"}{money(Math.abs(t.amount))}</Cell>
+              </Row>
+            ))}
+          </DataTable>
+        )}
+      </Panel>
     </div>
   );
 }
