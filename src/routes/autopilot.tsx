@@ -42,7 +42,7 @@ function Autopilot() {
             <Btn
               variant={bot.running ? "secondary" : "primary"}
               disabled={!bot.funded}
-              onClick={toggle}
+              onClick={() => toggle(!bot.running)}
             >
               {bot.running ? "Stop bot" : "Start bot"}
             </Btn>
