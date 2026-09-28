@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Flipmain autopilot engine (SIMULATED EXECUTION — no registrar or payment
@@ -38,10 +39,52 @@ export type BotState = {
 
 const EMPTY: BotState = { running: false, startedAt: null, elapsedMs: 0, txns: [] };
 
-function read(): BotState {
-  if (typeof localStorage === "undefined") return { ...EMPTY };
+/** The signed-in user whose account the engine is operating on. */
+let currentUser: string | null = null;
+const userKey = () => (currentUser ? `${KEY}:${currentUser}` : null);
+let saveTimer: number | undefined;
+let boundFor: string | null | undefined;
+
+function sanitize(p: Partial<BotState>): BotState {
+  return {
+    running: Boolean(p.running),
+    startedAt: typeof p.startedAt === "number" ? p.startedAt : null,
+    elapsedMs: typeof p.elapsedMs === "number" ? p.elapsedMs : 0,
+    txns: Array.isArray(p.txns) ? (p.txns as Txn[]) : [],
+  };
+}
+
+function persistRemote(state: BotState) {
+  const uid = currentUser;
+  if (!uid) return;
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    void supabase.from("bot_accounts").upsert({ user_id: uid, state: state as never });
+  }, 400);
+}
+
+/** Load the signed-in user's own account from the backend. */
+async function bindUser(uid: string | null) {
+  currentUser = uid;
+  window.dispatchEvent(new CustomEvent(EVENT));
+  if (!uid) return;
+  const { data } = await supabase.from("bot_accounts").select("state").eq("user_id", uid).maybeSingle();
+  if (currentUser !== uid) return;
+  const state = data?.state ? sanitize(data.state as Partial<BotState>) : { ...EMPTY };
   try {
-    const raw = localStorage.getItem(KEY);
+    localStorage.setItem(`${KEY}:${uid}`, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+  if (!data) void supabase.from("bot_accounts").insert({ user_id: uid, state: state as never });
+  window.dispatchEvent(new CustomEvent(EVENT));
+}
+
+function read(): BotState {
+  const key = userKey();
+  if (typeof localStorage === "undefined" || !key) return { ...EMPTY };
+  try {
+    const raw = localStorage.getItem(key);
     if (!raw) return { ...EMPTY };
     const p = JSON.parse(raw) as Partial<BotState>;
     return {
@@ -56,8 +99,11 @@ function read(): BotState {
 }
 
 function write(state: BotState) {
+  const key = userKey();
+  if (!key) return;
+  persistRemote(state);
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(key, JSON.stringify(state));
   } catch {
     /* ignore */
   }
@@ -523,6 +569,13 @@ export function useBot() {
   const { session } = useAuth();
   const [state, setState] = useState<BotState>(EMPTY);
   const [, force] = useState(0);
+  const uid = session?.user.id ?? null;
+
+  useEffect(() => {
+    if (boundFor === uid) return;
+    boundFor = uid;
+    void bindUser(uid);
+  }, [uid]);
 
   useEffect(() => {
     const sync = () => setState(read());
@@ -543,7 +596,9 @@ export function useBot() {
 
   const start = useCallback(() => {
     const cur = read();
-    if (cur.running) return;
+    if (cur.running || !currentUser) return;
+    const s = snapshot(cur);
+    if (!s.funded) return;
     write({ ...cur, running: true, startedAt: Date.now() });
   }, []);
 
