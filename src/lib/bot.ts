@@ -21,8 +21,13 @@ export type Txn = {
   at: number;
   kind: "Deposit" | "Withdrawal";
   amount: number;
-  status: "Completed";
+  status: "Completed" | "Pending";
+  /** Epoch ms when a pending deposit is credited. */
+  creditAt?: number;
 };
+
+/** Deposits stay pending for 5 minutes before the balance is credited. */
+export const DEPOSIT_HOLD_MS = 5 * 60_000;
 
 export type BotState = {
   running: boolean;
@@ -376,7 +381,9 @@ export function snapshot(state: BotState): BotSnapshot {
   const t = runtimeMs(state);
   const now = Date.now();
 
-  const deposited = state.txns.filter((x) => x.kind === "Deposit").reduce((s, x) => s + x.amount, 0);
+  const deposited = state.txns
+    .filter((x) => x.kind === "Deposit" && x.status === "Completed")
+    .reduce((s, x) => s + x.amount, 0);
   const withdrawn = state.txns.filter((x) => x.kind === "Withdrawal").reduce((s, x) => s + x.amount, 0);
   const capital = Math.max(0, deposited - withdrawn);
 
