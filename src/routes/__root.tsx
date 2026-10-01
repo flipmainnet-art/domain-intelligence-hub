@@ -83,12 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Flipmain — Domain Investing Platform" },
       {
         name: "description",
-        content: "Find undervalued domains. Flip with conviction.",
+        content:
+          "AI-powered domain flipper that finds cheap domains with potential, helps you grab them early, and flip them for more. Start flipping smarter today.",
       },
       { property: "og:title", content: "Flipmain — Domain Investing Platform" },
       {
         property: "og:description",
-        content: "Find undervalued domains. Flip with conviction.",
+        content:
+          "AI-powered domain flipper that finds cheap domains with potential, helps you grab them early, and flip them for more. Start flipping smarter today.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
