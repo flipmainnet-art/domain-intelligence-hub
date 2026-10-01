@@ -37,8 +37,9 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.error(err);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -83,12 +84,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Flipmain — Domain Investing Platform" },
       {
         name: "description",
-        content: "Find undervalued domains. Flip with conviction.",
+        content:
+          "AI-powered domain flipper that finds cheap domains with potential, helps you grab them early, and flip them for more. Start flipping smarter today.",
       },
       { property: "og:title", content: "Flipmain — Domain Investing Platform" },
       {
         property: "og:description",
-        content: "Find undervalued domains. Flip with conviction.",
+        content:
+          "AI-powered domain flipper that finds cheap domains with potential, helps you grab them early, and flip them for more. Start flipping smarter today.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
